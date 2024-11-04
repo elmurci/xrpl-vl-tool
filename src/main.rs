@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use anyhow::{anyhow, Result};
-use clap::{Parser, Subcommand};
 use color_eyre::owo_colors::OwoColorize;
 use anstream::println;
-use enums::Version;
+use enums::{Commands, Version};
 use base64::prelude::*;
-use util::{base58_decode, decode_manifest, decode_unl, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, verify_signature};
+use structs::{Cli, DecodedBlob, Unl, Validator};
+use clap::Parser;
+use util::{base58_decode, base58_to_hex, decode_manifest, decode_unl, get_manifests, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, sign, verify_signature};
 use crate::aws::get_secret;
 use crate::structs::AwsSecret;
 
@@ -14,21 +15,6 @@ mod aws;
 mod util;
 mod structs;
 mod enums;
-
-#[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
-#[clap(propagate_version = true)]
-struct Cli {
-    #[clap(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Load { arg: Option<String> },
-    Compare { arg: Option<Vec<String>> },
-    Sign { arg: Option<String> },
-}
 
 #[tokio::main]
 async fn main() -> Result<()> { 
@@ -128,26 +114,60 @@ async fn main() -> Result<()> {
 
         }
         Commands::Sign { arg } => {
-            let Some(file) = arg else {
+            let Some(params) = arg else {
                 return Err(anyhow!("No URL or file was passed"));
             };
 
-            let unl = get_unl(file).await?;
+            if params.len() != 5 {
+                return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days and aws_secret_name must be passed"));
+            }
 
-            println!("UNL to Sign: {:?}", unl);
+            let manifest = params[0].clone();
+            let manifests = params[1].clone();
+            let sequence = params[2].parse::<u32>()?;
+            let expiration_in_days = params[3].parse::<u32>()?;
+            let aws_secret_name = params[4].clone();
 
-            // E79420CB47F3377B636924605DFEF91A7C5F96158C64B66D25AE5DBBC0965632
-            // 79AE3D900953E7D654378CB8B8018B6DEE948048BC0A66E13AD4F5E46AB87A55
-            let secret = get_secret("test/unl/tool/pk").await?;
+            let secret = get_secret(&aws_secret_name).await?;
 
             if secret.is_none() {
                 return Err(anyhow!("No secret was found"));
             }
 
-            let pk = serde_json::from_str::<AwsSecret>(&secret.unwrap())?.pk;
+            let mut unl = Unl::default();
+            let keypair = serde_json::from_str::<AwsSecret>(&secret.unwrap())?;
             
+            unl.manifest = manifest;
+            unl.public_key = keypair.public_key.clone();
 
-            println!("secret: {}", pk);
+            let manifests = get_manifests(&manifests)?;
+            let mut validators: Vec<Validator> = vec![];
+
+            for manifest in manifests {
+                let decoded_manifest = decode_manifest(&manifest)?;
+                let validator = Validator {
+                    validation_public_key: base58_to_hex(&decoded_manifest.master_public_key).to_uppercase(),
+                    manifest,
+                    decoded_manifest: None,
+                };
+                validators.push(validator);
+            }
+
+            let decoded_blob = DecodedBlob { 
+                sequence, 
+                expiration: expiration_in_days, 
+                validators
+            };
+
+            let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
+
+            let signature = sign(&keypair.public_key, &keypair.private_key, &decoded_blob_payload);
+
+            unl.signature = signature;
+            unl.blob = BASE64_STANDARD.encode(decoded_blob_payload);
+
+            println!("Signed UNL: {}", serde_json::to_string(&unl)?);
+
 
         }
     }

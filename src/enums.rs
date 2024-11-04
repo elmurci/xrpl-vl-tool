@@ -1,3 +1,12 @@
+use clap::Subcommand;
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Load { arg: Option<String> },
+    Compare { arg: Option<Vec<String>> },
+    Sign { arg: Option<Vec<String>> },
+}
+
 #[derive(Debug)]
 pub enum Version {
     // None,

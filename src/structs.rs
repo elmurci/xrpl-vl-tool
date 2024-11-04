@@ -1,12 +1,25 @@
 use ed25519_dalek::{Signer, Verifier};
 use serde::{Serialize, Deserialize};
+use clap::Parser;
+
+use crate::enums::Commands;
+
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+#[clap(propagate_version = true)]
+pub struct Cli {
+    #[clap(subcommand)]
+    pub command: Commands,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Unl {
     pub public_key: String,
     pub manifest: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub decoded_manifest: Option<DecodedManifest>,
     pub blob: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub decoded_blob: Option<DecodedBlob>,
     pub signature: String,
     pub version: u8,
@@ -23,10 +36,24 @@ pub struct DecodedBlob {
 pub struct Validator {
     pub validation_public_key: String,
     pub manifest: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub decoded_manifest: Option<DecodedManifest>,
 }
 
-// TODO
+impl Default for Unl {
+    fn default() -> Unl {
+        Unl {
+            public_key: "".to_string(),
+            manifest: "".to_string(),
+            decoded_manifest: None,
+            blob: "".to_string(),
+            decoded_blob: None,
+            signature: "".to_string(),
+            version: 1,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DecodedManifest {
     pub sequence: u32,
@@ -52,7 +79,8 @@ impl Default for DecodedManifest {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AwsSecret {
-    pub pk: String
+    pub public_key: String,
+    pub private_key: String,
 }
 
 pub struct Ed25519Signer<S>

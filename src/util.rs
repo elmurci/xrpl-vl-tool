@@ -1,8 +1,9 @@
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
-use secp256k1::{ecdsa::Signature, Message, PublicKey as PublicKeySecp256k1, Secp256k1};
+use ed25519::signature::SignerMut;
+use secp256k1::{ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1, SecretKey as Secp256k1SecretKey};
 use sha2::{Sha256, Sha512, Digest};
-use ed25519_dalek::{Signature as Ed25519Signature, VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
+use ed25519_dalek::{Signature as Ed25519Signature, SecretKey as Ed25519SecretKey, SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 use url::Url;
 use std::{fs, str::FromStr};
 use crate::{enums::Version, structs::{DecodedBlob, DecodedManifest, Ed25519Verifier, Unl}};
@@ -152,6 +153,14 @@ pub fn decode_unl(unl: Unl) -> Result<Unl> {
     Ok(decoded_unl)
 }
 
+pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
+    let contents = fs::read_to_string(file_path).expect(&format!("No such file: {}", file_path));
+    let lines: Vec<String> = contents.split("\n")
+        .map(|s: &str| s.to_string())
+        .collect();
+    Ok(lines)
+}
+
 pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
     let url = Url::parse(
         &url_or_file
@@ -178,7 +187,7 @@ pub fn base58_to_hex(b58_str: &str) -> String {
     if !check {
         println!("Checksum check: {}", check);
     }
-    payload_hex[2..].to_string()
+    hex::encode(decb58)
 }
 
 pub fn bytes_to_base58(b58_bytes: &[u8]) -> Result<String> {
@@ -210,6 +219,22 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
     }
 }
 
+pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> String {
+    let is_ed25519 = public_key_hex.starts_with("ED");
+    if is_ed25519 {
+        let private_key_bytes: [u8;32] = get_key_bytes(private_key_hex).expect("Could not get bytes").try_into().expect("Could not conver key to u8;32");
+        let mut signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
+        signing_key.sign(payload.as_bytes()).to_string()
+    } else {
+        // let secp = Secp256k1::new();
+        // let secret_key = Secp256k1SecretKey::from_str(private_key_hex).expect("Invalid Secp256k1 Secret Key");
+        // let message = Message::from_digest(sha512_first_half(payload.as_bytes().unwrap().try_into().unwrap())?);
+        // let signature = secp.sign(&message, &secret_key);
+        // signature.to_string()
+        "TODO".to_string()
+    }
+}
+
 pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -> bool {
 
     let is_ed25519 = public_key_hex.starts_with("ED");
@@ -217,7 +242,7 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
     if is_ed25519 {
         let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = public_key_bytes[1..33].try_into().expect("Could not parse Public Key");
         let signature_bytes: [u8; SIGNATURE_LENGTH] = hex::decode(signature).expect("Could not decode Signature from Hex format").try_into().expect("Could not parse Signature");
-        let verifying_key = VerifyingKey::from_bytes(&public_key_bytes).expect("Invalid ED25519 Public Key");
+        let verifying_key = Ed25519VerifyingKey::from_bytes(&public_key_bytes).expect("Invalid ED25519 Public Key");
         let signature = Ed25519Signature::from_bytes(&signature_bytes); 
         let verifier = Ed25519Verifier {
             verifying_key
@@ -225,11 +250,11 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
         verifier.verify(&hex::decode(hex::encode(payload)).unwrap(), &signature).is_ok()
     } else {
         let secp = Secp256k1::new();
-        let signature = Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
+        let signature = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
         let digest = sha512_first_half(payload);
         let p: [u8; 32] = digest.unwrap().try_into().unwrap();
         let message = Message::from_digest(p);
-        let public_key = PublicKeySecp256k1::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
+        let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
         secp.verify_ecdsa(&message, &signature, &public_key).is_ok()
     }
 }
