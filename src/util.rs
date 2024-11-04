@@ -1,15 +1,18 @@
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use ed25519::signature::SignerMut;
-use secp256k1::{ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1, SecretKey as Secp256k1SecretKey};
+use secp256k1::{ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1};
 use sha2::{Sha256, Sha512, Digest};
-use ed25519_dalek::{Signature as Ed25519Signature, SecretKey as Ed25519SecretKey, SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
+use ed25519_dalek::{Signature as Ed25519Signature, SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 use url::Url;
+use std::io::prelude::*;
+use std::fs::File;
 use std::{fs, str::FromStr};
+use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{enums::Version, structs::{DecodedBlob, DecodedManifest, Ed25519Verifier, Unl}};
 use color_eyre::owo_colors::OwoColorize;
 
-pub fn from_xrpl_date(date: u32) -> u32 {
+pub fn _from_xrpl_date(date: u32) -> u32 {
     date + 946684800
 }
 
@@ -115,6 +118,12 @@ fn decode_next_field(barray: &[u8]) -> Result<Option<(Vec<u8>, Vec<u8>, &[u8])>>
     )
 }
 
+pub fn generate_unl_file(content: &str) -> Result<()> {
+    let mut file = File::create(format!("dist/index.json.{}", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()))?; // TODO
+    file.write_all(content.as_bytes())?;
+    Ok(())
+}
+
 pub fn sha512_first_half(message: &[u8]) -> Result<Vec<u8>> {
     let mut hasher = Sha512::new();
     hasher.update(message);
@@ -180,13 +189,6 @@ pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
 
 pub fn base58_to_hex(b58_str: &str) -> String {
     let decb58 = base58_decode(Version::NodePublic, b58_str).expect("Invalid base58 string");
-    let payload_unhex = &decb58[..decb58.len() - 4];
-    let checksum = &decb58[decb58.len() - 4..];
-    let payload_hex = hex::encode(payload_unhex);
-    let check = &double_sha256(&payload_hex)[..4] == checksum;
-    if !check {
-        println!("Checksum check: {}", check);
-    }
     hex::encode(decb58)
 }
 
@@ -222,7 +224,7 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
 pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> String {
     let is_ed25519 = public_key_hex.starts_with("ED");
     if is_ed25519 {
-        let private_key_bytes: [u8;32] = get_key_bytes(private_key_hex).expect("Could not get bytes").try_into().expect("Could not conver key to u8;32");
+        let private_key_bytes: [u8;32] = hex::decode(private_key_hex).expect("Could not decode from hex").try_into().expect("Could not convert to ed25519 key");
         let mut signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
         signing_key.sign(payload.as_bytes()).to_string()
     } else {
@@ -239,6 +241,7 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
 
     let is_ed25519 = public_key_hex.starts_with("ED");
     let public_key_bytes = get_key_bytes(public_key_hex).expect("Could not get bytes");
+    // println!("public_key_bytes {} - {:?}", public_key_hex, &public_key_bytes[1..33]);
     if is_ed25519 {
         let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = public_key_bytes[1..33].try_into().expect("Could not parse Public Key");
         let signature_bytes: [u8; SIGNATURE_LENGTH] = hex::decode(signature).expect("Could not decode Signature from Hex format").try_into().expect("Could not parse Signature");
@@ -247,7 +250,7 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
         let verifier = Ed25519Verifier {
             verifying_key
         };
-        verifier.verify(&hex::decode(hex::encode(payload)).unwrap(), &signature).is_ok()
+        verifier.verify(&payload.to_vec(), &signature).is_ok()
     } else {
         let secp = Secp256k1::new();
         let signature = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");

@@ -1,13 +1,17 @@
 use std::collections::HashSet;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use color_eyre::owo_colors::OwoColorize;
 use anstream::println;
+use ed25519::Signature as Ed25519Signature;
+use ed25519_dalek::{SigningKey, VerifyingKey as Ed25519VerifyingKey};
 use enums::{Commands, Version};
 use base64::prelude::*;
-use structs::{Cli, DecodedBlob, Unl, Validator};
+use rand::rngs::OsRng;
+use structs::{Cli, DecodedBlob, Ed25519Verifier, Unl, Validator};
 use clap::Parser;
-use util::{base58_decode, base58_to_hex, decode_manifest, decode_unl, get_manifests, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, sign, verify_signature};
+use util::{base58_decode, base58_encode, base58_to_hex, decode_manifest, decode_unl, generate_unl_file, get_manifests, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, sign, verify_signature};
 use crate::aws::get_secret;
 use crate::structs::AwsSecret;
 
@@ -28,44 +32,39 @@ async fn main() -> Result<()> {
             };
 
             let unl = get_unl(url_or_file).await?;
-
             let decoded_unl = decode_unl(unl.clone())?;
-
             let mut decoded_blob = decoded_unl.decoded_blob.expect("Could not decode blob");
+            let unl_decoded_manifest = decoded_unl.decoded_manifest.expect("Could not decode manifest");
+            let manifest_signin_key = hex::encode(base58_decode(enums::Version::NodePublic, &unl_decoded_manifest.signing_public_key).unwrap()).to_uppercase();
+            let manifest_verification = verify_signature(&manifest_signin_key, &serialize_manifest_data(&unl_decoded_manifest).expect("could not serialize manifest"), &unl_decoded_manifest.signature);
+            let unl_verification = verify_signature(&manifest_signin_key, &BASE64_STANDARD.decode(&unl.blob)?, &unl.signature);
 
-            println!("There are {} validators in this UNL. Sequence is: {} \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green());
+            println!("\nThere are {} validators in this UNL. Sequence is: {} | Manifest: {} | UNL: {} \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(manifest_verification), get_tick_or_cross(unl_verification));
 
             for validator in decoded_blob.validators.iter_mut() {
                 let validator_manifest = &validator.clone().decoded_manifest.expect("Could not decode manifest");
                 let payload = serialize_manifest_data(&validator_manifest)?;
 
                 let manifest_master_validation = verify_signature(
-                        &hex::encode(
+    &hex::encode(
                         &base58_decode(Version::NodePublic, &validator_manifest.master_public_key).unwrap()
                     ).to_uppercase(), 
                         &payload, 
                         &validator_manifest.master_signature
                 );
 
-                let manifest_signing_validation = verify_signature(&hex::encode(&base58_decode(Version::NodePublic, &validator_manifest.signing_public_key).unwrap()).to_uppercase(), &payload, &validator_manifest.signature);
-                let manifest_domain = if validator_manifest.domain.is_some() {
-                    validator_manifest.domain.clone().unwrap()
-                } else {
-                    String::from(" ")
-                };
+                let manifest_signing_validation = verify_signature(
+    &hex::encode(
+                        &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key).unwrap()
+                    ).to_uppercase(), 
+                        &payload, 
+                        &validator_manifest.signature
+                );
                 validator.decoded_manifest = Some(validator_manifest.clone());
 
-                println!("Validator: {} ({}) | Master: {}, Signing: {} | {}", &validator.validation_public_key, hex_to_base58(&validator.validation_public_key)?, get_tick_or_cross(manifest_master_validation), get_tick_or_cross(manifest_signing_validation), manifest_domain);
+                println!("Validator: {} ({}) | Master: {}, Signing: {} | {}", &validator.validation_public_key, hex_to_base58(&validator.validation_public_key)?, get_tick_or_cross(manifest_master_validation), get_tick_or_cross(manifest_signing_validation), validator_manifest.clone().domain.unwrap_or("".to_string()));
             }
 
-            let unl_decoded_manifest = decoded_unl.decoded_manifest.expect("Could not decode manifest");
-
-            let unl_signin_key = hex::encode(base58_decode(enums::Version::NodePublic, &unl_decoded_manifest.signing_public_key).unwrap()).to_uppercase();
-
-            let unl_verification = verify_signature(&unl_signin_key, &BASE64_STANDARD.decode(&unl.blob)?, &unl.signature);
-
-            println!("\nUNL Signature {}", get_tick_or_cross(unl_verification));
-            //END
         }
         Commands::Compare { arg } => {
             let Some(urls_or_files) = arg else {
@@ -162,13 +161,13 @@ async fn main() -> Result<()> {
             let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
 
             let signature = sign(&keypair.public_key, &keypair.private_key, &decoded_blob_payload);
+            
+            unl.signature = signature.clone();
+            unl.blob = BASE64_STANDARD.encode(decoded_blob_payload.clone());
 
-            unl.signature = signature;
-            unl.blob = BASE64_STANDARD.encode(decoded_blob_payload);
-
-            println!("Signed UNL: {}", serde_json::to_string(&unl)?);
-
-
+            let unl_content = &serde_json::to_string(&unl)?;
+            let file = generate_unl_file(unl_content).is_ok();
+            println!("{} {}","UNL file generated", get_tick_or_cross(file));
         }
     }
 
