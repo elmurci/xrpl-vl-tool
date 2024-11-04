@@ -92,7 +92,7 @@ Example response:
 
 Signs a new UNL retrieving the secret from AWS.
 
-`./xrpl-unl-manager {manifest} {manifests} {sequence} {expiration_in_days} {aws_secret_name}`
+`./xrpl-unl-manager sign {manifest} {manifests} {sequence} {expiration_in_days} {aws_secret_name}`
 
 Example request:
 
