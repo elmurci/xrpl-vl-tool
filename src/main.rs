@@ -8,6 +8,7 @@ use enums::Version;
 use base64::prelude::*;
 use util::{base58_decode, decode_manifest, decode_unl, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, verify_signature};
 use crate::aws::get_secret;
+use crate::structs::AwsSecret;
 
 mod aws;
 mod util;
@@ -127,13 +128,26 @@ async fn main() -> Result<()> {
 
         }
         Commands::Sign { arg } => {
-            let Some(url_or_file) = arg else {
+            let Some(file) = arg else {
                 return Err(anyhow!("No URL or file was passed"));
             };
-            println!("Sign: {:?}", url_or_file);
-            let secret = get_secret("/debug/ssl/wildcard.pem").await?;
 
-            println!("secret: {:?}", secret.unwrap().into_inner());
+            let unl = get_unl(file).await?;
+
+            println!("UNL to Sign: {:?}", unl);
+
+            // E79420CB47F3377B636924605DFEF91A7C5F96158C64B66D25AE5DBBC0965632
+            // 79AE3D900953E7D654378CB8B8018B6DEE948048BC0A66E13AD4F5E46AB87A55
+            let secret = get_secret("test/unl/tool/pk").await?;
+
+            if secret.is_none() {
+                return Err(anyhow!("No secret was found"));
+            }
+
+            let pk = serde_json::from_str::<AwsSecret>(&secret.unwrap())?.pk;
+            
+
+            println!("secret: {}", pk);
         }
     }
 

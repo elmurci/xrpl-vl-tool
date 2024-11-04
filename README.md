@@ -10,9 +10,13 @@ This tool allows you to `load`, `compare` (two) and `sign` UNL's.
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`.
+`./xrpl-unl-manager load {unl_url_or_path}`.
 
 And loads the given UNL performing validations on manifests.
+
+Example request:
+
+`./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`.
 
 Example response:
 
@@ -62,6 +66,10 @@ UNL Signature ✓
 
 The command compares two given UNLs:
 
+`./xrpl-unl-manager compare {unl_1} {unl_2}`.
+
+Example request:
+
 `./xrpl-unl-manager compare https://vl.xrplf.org /dev/unl.json`.
 
 Example response:
@@ -79,3 +87,13 @@ Example response:
 +nHDHzXZKtmMHCkTVgdWY4dqdigDrESiseUF8JkzE93DUtfbt6s3W validator.aspired.nz
 -nHUUgpUVNxXfxkkoyh2QDjfLfHapcut8gYwKeShnJYd3SdPui19A peersyst.cloud
 ```
+
+### Sign
+
+Signs a new UNL retrieving the secret from AWS.
+
+`./xrpl-unl-manager {manifest} {manifests} {sequence} {expiration_in_days} {aws_secret_name}`
+
+Example request:
+
+`./xrpl-unl-manager JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 test/unl/tool`

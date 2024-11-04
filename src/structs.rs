@@ -50,6 +50,11 @@ impl Default for DecodedManifest {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AwsSecret {
+    pub pk: String
+}
+
 pub struct Ed25519Signer<S>
 where
     S: Signer<ed25519::Signature>
