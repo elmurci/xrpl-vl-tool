@@ -97,3 +97,42 @@ Signs a new UNL retrieving the secret from AWS.
 Example request:
 
 `./xrpl-unl-manager sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 test/unl/tool`
+
+
+## Validator List fields
+
+- `blob`: Base64-encoded JSON string containing `sequence`, `validators` and `expiration` fields.
+    - `sequence`: Validator list sequence (incremental)
+    - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
+        the list expires.
+    - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
+- `manifest`: Base64-encoded serialization of a manifest containing the
+        publisher's master and signing public keys.
+- `signature`: Hex-encoded signature of the blob using the publisher's
+        signing key.
+- `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
+- `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
+
+### Manifest format
+
+The `manifest` is a base64-encoded structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-manager/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
+
+- `sequence`: Manifest sequence number.
+- `master_public_key`: The master public key
+- `signature`: The signature (signed with the `signing_public_key`)
+- `signing_public_key`: The signing public key
+- `master_signature`: The signature (signed with the `master_public_key`)
+- `domain`: Validator domain (optional).
+
+Example:
+
+```
+{
+  "sequence": 1,
+  "master_public_key": "nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6",
+  "signature": "109c8f7ea54617b24305d44af548fade9bdccc10ec43c76e1a4bef3c588817a6c95757244f7a1170b674d36fe2f0531ef2517a07de1df5424aeebb64591bbd0d",
+  "signing_public_key": "nHBYNPHW6LJGzHF8AynFg4TdVD9M9wo5YSf7ybgf8Gobu42GHxbd",
+  "master_signature": "cb7a643ebf6386ac8fbc1ed3e0dcfc8ff32311a35af6884c2f3b689f1000643a5c07ecd7f1056f43819488078f2c2285fdfa9329f8549127e86e8ccf3a2fdb09",
+  "domain": "xrpl.org"
+}
+```

@@ -35,6 +35,8 @@ async fn main() -> Result<()> {
             let decoded_unl = decode_unl(unl.clone())?;
             let mut decoded_blob = decoded_unl.decoded_blob.expect("Could not decode blob");
             let unl_decoded_manifest = decoded_unl.decoded_manifest.expect("Could not decode manifest");
+
+            println!("{:?}", &unl_decoded_manifest);
             let manifest_signin_key = hex::encode(base58_decode(enums::Version::NodePublic, &unl_decoded_manifest.signing_public_key).unwrap()).to_uppercase();
             let manifest_verification = verify_signature(&manifest_signin_key, &serialize_manifest_data(&unl_decoded_manifest).expect("could not serialize manifest"), &unl_decoded_manifest.signature);
             let unl_verification = verify_signature(&manifest_signin_key, &BASE64_STANDARD.decode(&unl.blob)?, &unl.signature);
