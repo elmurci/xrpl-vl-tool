@@ -1,17 +1,14 @@
 use std::collections::HashSet;
-use std::str::FromStr;
-
 use anyhow::{anyhow, Result};
 use color_eyre::owo_colors::OwoColorize;
 use anstream::println;
-use ed25519::Signature as Ed25519Signature;
-use ed25519_dalek::{SigningKey, VerifyingKey as Ed25519VerifyingKey};
-use enums::{Commands, Version};
 use base64::prelude::*;
-use rand::rngs::OsRng;
-use structs::{Cli, DecodedBlob, Ed25519Verifier, Unl, Validator};
+use enums::{Commands, Version};
+use structs::{Cli, DecodedBlob, Unl, Validator};
 use clap::Parser;
-use util::{base58_decode, base58_encode, base58_to_hex, decode_manifest, decode_unl, generate_unl_file, get_manifests, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, sign, verify_signature};
+use util::{base58_decode, base58_to_hex, convert_to_human_time, convert_to_ripple_time, convert_to_unix_time, decode_manifest, decode_unl, generate_unl_file, get_manifests, get_tick_or_cross, get_unl, hex_to_base58, serialize_manifest_data, sign, verify_signature};
+use chrono::{Duration, Utc};
+
 use crate::aws::get_secret;
 use crate::structs::AwsSecret;
 
@@ -40,8 +37,8 @@ async fn main() -> Result<()> {
             let manifest_signin_key = hex::encode(base58_decode(enums::Version::NodePublic, &unl_decoded_manifest.signing_public_key).unwrap()).to_uppercase();
             let manifest_verification = verify_signature(&manifest_signin_key, &serialize_manifest_data(&unl_decoded_manifest).expect("could not serialize manifest"), &unl_decoded_manifest.signature);
             let unl_verification = verify_signature(&manifest_signin_key, &BASE64_STANDARD.decode(&unl.blob)?, &unl.signature);
-
-            println!("\nThere are {} validators in this UNL. Sequence is: {} | Manifest: {} | UNL: {} \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(manifest_verification), get_tick_or_cross(unl_verification));
+            let expiration_unix_timestamp = convert_to_unix_time(decoded_blob.expiration);
+            println!("\nThere are {} validators in this UNL. Sequence is: {} | Manifest: {} | UNL: {} | Expires: {} \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(manifest_verification), get_tick_or_cross(unl_verification), convert_to_human_time(expiration_unix_timestamp));
 
             for validator in decoded_blob.validators.iter_mut() {
                 let validator_manifest = &validator.clone().decoded_manifest.expect("Could not decode manifest");
@@ -126,7 +123,7 @@ async fn main() -> Result<()> {
             let manifest = params[0].clone();
             let manifests = params[1].clone();
             let sequence = params[2].parse::<u32>()?;
-            let expiration_in_days = params[3].parse::<u32>()?;
+            let expiration_in_days = params[3].parse::<u16>()?;
             let aws_secret_name = params[4].clone();
 
             let secret = get_secret(&aws_secret_name).await?;
@@ -156,7 +153,7 @@ async fn main() -> Result<()> {
 
             let decoded_blob = DecodedBlob { 
                 sequence, 
-                expiration: expiration_in_days, 
+                expiration: convert_to_ripple_time(Some((Utc::now() + Duration::days(expiration_in_days as i64)).timestamp())), 
                 validators
             };
 

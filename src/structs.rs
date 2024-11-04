@@ -28,7 +28,7 @@ pub struct Unl {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DecodedBlob {
     pub sequence: u32,
-    pub expiration: u32,
+    pub expiration: i64,
     pub validators: Vec<Validator>,
 }
 

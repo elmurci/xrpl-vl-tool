@@ -1,5 +1,6 @@
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use ed25519::signature::SignerMut;
 use secp256k1::{ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1};
 use sha2::{Sha256, Sha512, Digest};
@@ -12,8 +13,26 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{enums::Version, structs::{DecodedBlob, DecodedManifest, Ed25519Verifier, Unl}};
 use color_eyre::owo_colors::OwoColorize;
 
-pub fn _from_xrpl_date(date: u32) -> u32 {
-    date + 946684800
+pub fn convert_to_human_time(timestamp: i64) -> String {
+    let dt = DateTime::from_timestamp(timestamp, 0).unwrap();
+    format!("{}", dt.format("%Y-%m-%d %H:%M:%S"))
+}
+pub fn convert_to_ripple_time(tstamp: Option<i64>) -> i64 {
+    let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
+    let current_time = match tstamp {
+        Some(ts) => ts,
+        None => {
+            let start = SystemTime::now();
+            let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
+            since_the_epoch.as_secs() as i64
+        }
+    };
+    current_time - ripple_epoch
+}
+
+pub fn convert_to_unix_time(rtstamp: i64) -> i64 {
+    let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
+    rtstamp + ripple_epoch
 }
 
 pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
