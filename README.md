@@ -10,7 +10,7 @@ This tool allows you to `load`, `compare` (two) and `sign` UNL's.
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-manager load {unl_url_or_path}`.
+`./xrpl-unl-manager load {url_or_path}`.
 
 And loads the given UNL performing validations on manifests.
 
@@ -66,7 +66,7 @@ UNL Signature ✓
 
 The command compares two given UNLs:
 
-`./xrpl-unl-manager compare {unl_1} {unl_2}`.
+`./xrpl-unl-manager compare {url_or_file_path_1} {url_or_file_path_2}`.
 
 Example request:
 
@@ -92,7 +92,7 @@ Example response:
 
 Signs a new UNL retrieving the secret from AWS.
 
-`./xrpl-unl-manager sign {manifest} {manifests} {sequence} {expiration_in_days} {aws_secret_name}`
+`./xrpl-unl-manager sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {aws_secret_name}`
 
 Example request:
 
