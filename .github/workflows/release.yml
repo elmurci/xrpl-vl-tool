@@ -13,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: cargo test
+        run: cargo test --all-features
       - uses: taiki-e/create-gh-release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: cargo test
-        run: cargo test --all-features
 
   upload-assets:
     needs: create-release
