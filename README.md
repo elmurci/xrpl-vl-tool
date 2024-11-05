@@ -119,9 +119,9 @@ The `manifest` is a base64-encoded structure that defines a Validator. Manifest 
 
 - `sequence`: Manifest sequence number.
 - `master_public_key`: The master public key
-- `signature`: The signature (signed with the `signing_public_key`)
+- `signature`: The signature (can be verified with the `signing_public_key`)
 - `signing_public_key`: The signing public key
-- `master_signature`: The signature (signed with the `master_public_key`)
+- `master_signature`: The signature (can be verified with the `master_public_key`)
 - `domain`: Validator domain (optional).
 
 Example:
