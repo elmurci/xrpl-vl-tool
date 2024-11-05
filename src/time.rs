@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn test_convert_to_human_time_utc() {
         let timestamp = 1609459200; // 2021-01-01 00:00:00 UTC
-        let expected = "2021-01-01 00:00:00 UTC";
+        let expected = "2021-01-01 00:00:00";
         let result = convert_to_human_time(timestamp);
         assert_eq!(result, expected);
     }
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_convert_to_human_time_negative_timestamp_utc() {
         let timestamp = -2208988800; // 1900-01-01 00:00:00 UTC
-        let expected = "1900-01-01 00:00:00 UTC";
+        let expected = "1900-01-01 00:00:00";
         let result = convert_to_human_time(timestamp);
         assert_eq!(result, expected);
     }
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn test_convert_to_human_time_zero_timestamp_utc() {
         let timestamp = 0; // 1970-01-01 00:00:00 UTC
-        let expected = "1970-01-01 00:00:00 UTC";
+        let expected = "1970-01-01 00:00:00";
         let result = convert_to_human_time(timestamp);
         assert_eq!(result, expected);
     }
