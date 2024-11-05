@@ -21,7 +21,7 @@ Example request:
 Example response:
 
 ```
-There are 35 validators in this UNL. Sequence is: 2024103001 
+There are 35 validators in this UNL. Sequence is: 80 | Manifest: ✓ | UNL: ✓ | Expires: 2025-10-31 00:00:00 
 
 Validator: ED13AAFCB6A87BCB5D093C2EF37F04431C291126D674293305152D9776C6ABA4D6 (nHBWa56Vr7csoFcCnEPzCCKVvnDQw3L28mATgHYQMGtbEfUjuYyB) | Master: ✓, Signing: ✓ | xrp.vet
 Validator: ED4246AA3AE9D29863944800CCA91829E4447498A20CD9C3973A6B59346C75AB95 (nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec) | Master: ✓, Signing: ✓ |  
