@@ -42,14 +42,11 @@ async fn main() -> Result<()> {
             let unl_decoded_manifest = decoded_unl
                 .decoded_manifest
                 .expect("Could not decode manifest");
-
-            println!("{:?}", &unl_decoded_manifest);
             let manifest_signin_key = hex::encode(
                 base58_decode(
                     enums::Version::NodePublic,
                     &unl_decoded_manifest.signing_public_key,
-                )
-                .unwrap(),
+                )?,
             )
             .to_uppercase();
             let manifest_verification = verify_signature(
@@ -75,8 +72,7 @@ async fn main() -> Result<()> {
 
                 let manifest_master_validation = verify_signature(
                     &hex::encode(
-                        &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)
-                            .unwrap(),
+                        &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
                     )
                     .to_uppercase(),
                     &payload,
@@ -85,8 +81,7 @@ async fn main() -> Result<()> {
 
                 let manifest_signing_validation = verify_signature(
                     &hex::encode(
-                        &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)
-                            .unwrap(),
+                        &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
                     )
                     .to_uppercase(),
                     &payload,
@@ -119,17 +114,17 @@ async fn main() -> Result<()> {
             let unl_2_id = &urls_or_files[1];
             let unl_2 = get_unl(unl_2_id).await?;
             let decoded_unl_2 = decode_unl(unl_2.clone())?;
-            let validators_manifests_1: Vec<String> = decoded_unl_1
-                .decoded_blob
-                .unwrap()
-                .validators
+
+            let decoded_unl_1_blob = decoded_unl_1.decoded_blob.expect("Could not decode blob");
+            let decoded_unl_1_validators = decoded_unl_1_blob.validators;
+            let decoded_unl_2_blob = decoded_unl_2.decoded_blob.expect("Could not decode blob");
+            let decoded_unl_2_validators = decoded_unl_2_blob.validators;
+            let validators_manifests_1: Vec<String> = decoded_unl_1_validators
                 .iter()
                 .map(|c| c.manifest.clone())
                 .collect();
-            let validators_manifests_2: Vec<String> = decoded_unl_2
-                .decoded_blob
-                .unwrap()
-                .validators
+            
+            let validators_manifests_2: Vec<String> = decoded_unl_2_validators
                 .iter()
                 .map(|c| c.manifest.clone())
                 .collect();

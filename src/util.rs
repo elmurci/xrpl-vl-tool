@@ -33,8 +33,8 @@ pub fn double_sha256(hex_str: &str) -> Vec<u8> {
     hash2.to_vec()
 }
 
-pub fn hex_to_base58(key: &str) -> Result<String> {
-    let payload_str = format!("1C{}", key);
+pub fn hex_to_base58(hex_string: &str) -> Result<String> {
+    let payload_str = format!("1C{}", hex_string);
     let payload_unhex = hex::decode(&payload_str).expect("Invalid hex string");
     let checksum = &double_sha256(&payload_str)[..4];
     let mut payload_with_checksum = payload_unhex.clone();
@@ -73,13 +73,13 @@ pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
     Ok(unl)
 }
 
-pub fn base58_to_hex(b58_str: &str) -> String {
-    let decb58 = base58_decode(Version::NodePublic, b58_str).expect("Invalid base58 string");
+pub fn base58_to_hex(bae58_string: &str) -> String {
+    let decb58 = base58_decode(Version::NodePublic, bae58_string).expect("Invalid base58 string");
     hex::encode(decb58)
 }
 
-pub fn bytes_to_base58(b58_bytes: &[u8]) -> Result<String> {
-    hex_to_base58(&hex::encode(b58_bytes))
+pub fn bytes_to_base58(bytes: &[u8]) -> Result<String> {
+    hex_to_base58(&hex::encode(bytes))
 }
 
 pub fn base58_encode<I: AsRef<[u8]>>(input: I) -> String {

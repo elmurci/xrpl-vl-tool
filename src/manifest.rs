@@ -1,6 +1,6 @@
 use crate::{
     structs::DecodedManifest,
-    util::{bytes_to_base58, get_key_bytes},
+    util::{base58_encode, bytes_to_base58, get_key_bytes}
 };
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
