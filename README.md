@@ -1,4 +1,4 @@
-# XRP Ledger UNL Manager
+# XRP Ledger UNL Tool
 
 Tool to validate, compare and sign UNL's.
 
