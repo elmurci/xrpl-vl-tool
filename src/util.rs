@@ -1,144 +1,17 @@
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
-use ed25519::signature::SignerMut;
-use secp256k1::{ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1};
 use sha2::{Sha256, Sha512, Digest};
-use ed25519_dalek::{Signature as Ed25519Signature, SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 use url::Url;
 use std::io::prelude::*;
 use std::fs::File;
-use std::{fs, str::FromStr};
-use std::time::{SystemTime, UNIX_EPOCH};
-use crate::{enums::Version, structs::{DecodedBlob, DecodedManifest, Ed25519Verifier, Unl}};
+use std::fs;
+use crate::manifest::decode_manifest;
+use crate::time::get_timestamp;
+use crate::{enums::Version, structs::{DecodedBlob, Unl}};
 use color_eyre::owo_colors::OwoColorize;
 
-pub fn convert_to_human_time(timestamp: i64) -> String {
-    let dt = DateTime::from_timestamp(timestamp, 0).unwrap();
-    format!("{}", dt.format("%Y-%m-%d %H:%M:%S"))
-}
-pub fn convert_to_ripple_time(tstamp: Option<i64>) -> i64 {
-    let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
-    let current_time = match tstamp {
-        Some(ts) => ts,
-        None => {
-            let start = SystemTime::now();
-            let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
-            since_the_epoch.as_secs() as i64
-        }
-    };
-    current_time - ripple_epoch
-}
-
-pub fn convert_to_unix_time(rtstamp: i64) -> i64 {
-    let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
-    rtstamp + ripple_epoch
-}
-
-pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
-    let manifest_bytes = BASE64_STANDARD.decode(manifest_blob)?;
-
-    let mut remaining_bytes = &manifest_bytes[..];
-
-    let mut result = DecodedManifest::default();
-
-    while !remaining_bytes.is_empty() {
-        let (manifest_field_type, data, rest) = match decode_next_field(remaining_bytes)? {
-            Some(value) => value,
-            None => break,
-        };
-        remaining_bytes = rest;
-
-        let manifest_field_type = if manifest_field_type.len() == 1 {
-            manifest_field_type[0] as u16
-        } else {
-            u16::from_be_bytes(manifest_field_type.try_into().expect("Invalid mtypefield length"))
-        };
-
-        match manifest_field_type {
-            0x24 => {
-                result.sequence = u32::from_be_bytes(data.try_into().expect("Invalid sequence length"));
-            },
-            0x71 => {
-                result.master_public_key = bytes_to_base58(&data)?;
-            },
-            0x73 => {
-                result.signing_public_key = bytes_to_base58(&data)?;
-            },
-            0x76 => {
-                result.signature = hex::encode(data);
-            },
-            0x7012 => {
-                result.master_signature = hex::encode(data);
-            },
-            0x77 => {
-                result.domain = Some(String::from_utf8(data).expect("Invalid UTF-8 data").to_string());
-            },
-            _ => {
-                println!("Unexpected parsed field: {:x?} {:x?} {:x?}", manifest_field_type, data, remaining_bytes);
-            }
-        }
-    }
-
-    Ok(result)
-}
-
-fn decode_next_field(barray: &[u8]) -> Result<Option<(Vec<u8>, Vec<u8>, &[u8])>> {
-    if barray.len() < 2 {
-        return Ok(None);
-    }
-
-    let mut cbyteindex = 0;
-    let cbyte = barray[cbyteindex];
-    let ctype = (cbyte & 0xf0) >> 4;
-    let mut cfieldid = cbyte & 0x0f;
-    let mut typefield = vec![cbyte];
-
-    if ctype == 0x7 {
-        // blob
-        if cfieldid == 0 {
-            // larger field id
-            cbyteindex += 1;
-            cfieldid = barray[cbyteindex];
-            typefield.push(cfieldid);
-        }
-
-        cbyteindex += 1;
-        let cfieldlen = barray[cbyteindex] as usize;
-        cbyteindex += 1;
-        return Ok(
-            Some((
-                typefield,
-                barray[cbyteindex..(cbyteindex + cfieldlen)].to_vec(),
-                &barray[(cbyteindex + cfieldlen)..],
-            ))
-        );
-    }
-
-    let cfieldlen = match ctype {
-        0x2 => 4,  // int32
-        0xf => 1,  // int8
-        0x1 => 2,  // int16
-        0x03 => 8, // int64
-        _ => {
-            println!("WARN: Unparsed field type");
-            1
-        }
-    };
-
-    cbyteindex += 1;
-
-    Ok(
-        Some((
-            typefield,
-            barray[cbyteindex..(cbyteindex + cfieldlen)].to_vec(),
-            &barray[(cbyteindex + cfieldlen)..],
-        ))
-    )
-}
-
 pub fn generate_unl_file(content: &str) -> Result<()> {
-    let mut file = File::create(format!("dist/index.json.{}", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()))?; // TODO
+    let mut file = File::create(format!("dist/index.json.{}", get_timestamp()))?;
     file.write_all(content.as_bytes())?;
     Ok(())
 }
@@ -240,47 +113,6 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
     }
 }
 
-pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> String {
-    let is_ed25519 = public_key_hex.starts_with("ED");
-    if is_ed25519 {
-        let private_key_bytes: [u8;32] = hex::decode(private_key_hex).expect("Could not decode from hex").try_into().expect("Could not convert to ed25519 key");
-        let mut signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
-        signing_key.sign(payload.as_bytes()).to_string()
-    } else {
-        // let secp = Secp256k1::new();
-        // let secret_key = Secp256k1SecretKey::from_str(private_key_hex).expect("Invalid Secp256k1 Secret Key");
-        // let message = Message::from_digest(sha512_first_half(payload.as_bytes().unwrap().try_into().unwrap())?);
-        // let signature = secp.sign(&message, &secret_key);
-        // signature.to_string()
-        "TODO".to_string()
-    }
-}
-
-pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -> bool {
-
-    let is_ed25519 = public_key_hex.starts_with("ED");
-    let public_key_bytes = get_key_bytes(public_key_hex).expect("Could not get bytes");
-    // println!("public_key_bytes {} - {:?}", public_key_hex, &public_key_bytes[1..33]);
-    if is_ed25519 {
-        let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = public_key_bytes[1..33].try_into().expect("Could not parse Public Key");
-        let signature_bytes: [u8; SIGNATURE_LENGTH] = hex::decode(signature).expect("Could not decode Signature from Hex format").try_into().expect("Could not parse Signature");
-        let verifying_key = Ed25519VerifyingKey::from_bytes(&public_key_bytes).expect("Invalid ED25519 Public Key");
-        let signature = Ed25519Signature::from_bytes(&signature_bytes); 
-        let verifier = Ed25519Verifier {
-            verifying_key
-        };
-        verifier.verify(&payload.to_vec(), &signature).is_ok()
-    } else {
-        let secp = Secp256k1::new();
-        let signature = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
-        let digest = sha512_first_half(payload);
-        let p: [u8; 32] = digest.unwrap().try_into().unwrap();
-        let message = Message::from_digest(p);
-        let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
-        secp.verify_ecdsa(&message, &signature, &public_key).is_ok()
-    }
-}
-
 pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     if key.len() >= 64 {
        Ok( base58_decode(Version::NodePublic, hex_to_base58(key).unwrap().as_str())?)
@@ -291,48 +123,21 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     }
 }
 
-pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec<u8>> {
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut serialized_manifest = Vec::new();
-    let master_public_key = get_key_bytes(&decoded_manifest.master_public_key).expect("Could not get bytes");
-    let signing_public_key = get_key_bytes(&decoded_manifest.signing_public_key).expect("Could not get bytes");
-
-    let m: &[u8;1] = "M".as_bytes().try_into()?;
-    let a: &[u8;1] = "A".as_bytes().try_into()?;
-    let n: &[u8;1] = "N".as_bytes().try_into()?;
-    let sequence_type = 0x24 as u8;
-    let master_key_type = 0x71 as u8;
-    let signing_key_type = 0x73 as u8;
-    let domain_type = 0x77 as u8;
-
-    // Prefix
-    serialized_manifest.extend_from_slice(m);
-    serialized_manifest.extend_from_slice(a);
-    serialized_manifest.extend_from_slice(n);
-    serialized_manifest.extend_from_slice(&[0]);
-
-    // Sequence
-    serialized_manifest.extend_from_slice(sequence_type.to_le_bytes().as_ref());
-    serialized_manifest.extend_from_slice((decoded_manifest.sequence as u32).to_be_bytes().as_ref());
-
-    // Master Public Key
-    serialized_manifest.extend_from_slice(master_key_type.to_le_bytes().as_ref());
-    serialized_manifest.extend_from_slice((master_public_key.len() as u8).to_be_bytes().as_ref());
-    serialized_manifest.extend_from_slice(&master_public_key);
-
-    // Signing Public Key
-    serialized_manifest.extend_from_slice(signing_key_type.to_be_bytes().as_ref());
-    serialized_manifest.extend_from_slice((signing_public_key.len() as u8).to_be_bytes().as_ref()); // PK Length
-    serialized_manifest.extend_from_slice(&signing_public_key);
-
-    // Domain
-    if let Some(domain) = &decoded_manifest.domain {
-        let domain = domain.as_bytes();
-        serialized_manifest.extend_from_slice(domain_type.to_be_bytes().as_ref());
-        serialized_manifest.extend_from_slice((domain.len() as u8).to_be_bytes().as_ref()); // PK Length
-        serialized_manifest.extend_from_slice(domain);
+    #[test]
+    fn test_get_tick_or_cross_valid() {
+        let result = get_tick_or_cross(true);
+        let expected = "✓".green().to_string();
+        assert_eq!(result, expected);
     }
 
-    Ok(serialized_manifest)
-
+    #[test]
+    fn test_get_tick_or_cross_invalid() {
+        let result = get_tick_or_cross(false);
+        let expected = "x".red().to_string();
+        assert_eq!(result, expected);
+    }
 }
