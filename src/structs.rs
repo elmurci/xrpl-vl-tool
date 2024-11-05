@@ -1,6 +1,6 @@
-use ed25519_dalek::{Signer, Verifier};
-use serde::{Serialize, Deserialize};
 use clap::Parser;
+use ed25519_dalek::{Signer, Verifier};
+use serde::{Deserialize, Serialize};
 
 use crate::enums::Commands;
 
@@ -85,14 +85,14 @@ pub struct AwsSecret {
 
 pub struct Ed25519Signer<S>
 where
-    S: Signer<ed25519::Signature>
+    S: Signer<ed25519::Signature>,
 {
-    pub signing_key: S
+    pub signing_key: S,
 }
 
 impl<S> Ed25519Signer<S>
 where
-    S: Signer<ed25519::Signature>
+    S: Signer<ed25519::Signature>,
 {
     pub fn sign(&self, str: &str) -> ed25519::Signature {
         self.signing_key.sign(str.as_bytes())
@@ -100,17 +100,17 @@ where
 }
 
 pub struct Ed25519Verifier<V> {
-    pub verifying_key: V
+    pub verifying_key: V,
 }
 
 impl<V> Ed25519Verifier<V>
 where
-    V: Verifier<ed25519::Signature>
+    V: Verifier<ed25519::Signature>,
 {
     pub fn verify(
         &self,
         payload: &Vec<u8>,
-        signature: &ed25519::Signature
+        signature: &ed25519::Signature,
     ) -> Result<(), ed25519::Error> {
         self.verifying_key.verify(payload, signature)
     }

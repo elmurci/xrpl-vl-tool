@@ -1,14 +1,17 @@
-use anyhow::Result;
-use base64::{prelude::BASE64_STANDARD, Engine};
-use sha2::{Sha256, Sha512, Digest};
-use url::Url;
-use std::io::prelude::*;
-use std::fs::File;
-use std::fs;
 use crate::manifest::decode_manifest;
 use crate::time::get_timestamp;
-use crate::{enums::Version, structs::{DecodedBlob, Unl}};
+use crate::{
+    enums::Version,
+    structs::{DecodedBlob, Unl},
+};
+use anyhow::Result;
+use base64::{prelude::BASE64_STANDARD, Engine};
 use color_eyre::owo_colors::OwoColorize;
+use sha2::{Digest, Sha256, Sha512};
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
+use url::Url;
 
 pub fn generate_unl_file(content: &str) -> Result<()> {
     let mut file = File::create(format!("dist/index.json.{}", get_timestamp()))?;
@@ -36,9 +39,7 @@ pub fn hex_to_base58(key: &str) -> Result<String> {
     let checksum = &double_sha256(&payload_str)[..4];
     let mut payload_with_checksum = payload_unhex.clone();
     payload_with_checksum.extend_from_slice(checksum);
-    Ok(
-        base58_encode(payload_with_checksum)
-    )
+    Ok(base58_encode(payload_with_checksum))
 }
 
 pub fn decode_unl(unl: Unl) -> Result<Unl> {
@@ -56,25 +57,18 @@ pub fn decode_unl(unl: Unl) -> Result<Unl> {
 
 pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
     let contents = fs::read_to_string(file_path).expect(&format!("No such file: {}", file_path));
-    let lines: Vec<String> = contents.split("\n")
-        .map(|s: &str| s.to_string())
-        .collect();
+    let lines: Vec<String> = contents.split("\n").map(|s: &str| s.to_string()).collect();
     Ok(lines)
 }
 
 pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
-    let url = Url::parse(
-        &url_or_file
-    );
+    let url = Url::parse(&url_or_file);
     let unl: Unl;
-    
+
     if url.is_err() {
         unl = serde_json::from_str(&fs::read_to_string(url_or_file)?)?;
     } else {
-        unl = reqwest::get(url_or_file)
-            .await?
-        .json::<Unl>()
-        .await?;
+        unl = reqwest::get(url_or_file).await?.json::<Unl>().await?;
     }
     Ok(unl)
 }
@@ -115,7 +109,10 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
 
 pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     if key.len() >= 64 {
-       Ok( base58_decode(Version::NodePublic, hex_to_base58(key).unwrap().as_str())?)
+        Ok(base58_decode(
+            Version::NodePublic,
+            hex_to_base58(key).unwrap().as_str(),
+        )?)
     } else if key.len() != 33 {
         Ok(base58_decode(Version::NodePublic, key)?)
     } else {
