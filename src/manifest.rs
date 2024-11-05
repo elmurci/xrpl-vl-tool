@@ -65,7 +65,9 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
     Ok(result)
 }
 
-fn decode_next_field(barray: &[u8]) -> Result<Option<(Vec<u8>, Vec<u8>, &[u8])>> {
+type DecodField<'a> = (Vec<u8>, Vec<u8>, &'a [u8]);
+
+fn decode_next_field(barray: &[u8]) -> Result<Option<DecodField>> {
     if barray.len() < 2 {
         return Ok(None);
     }
@@ -125,10 +127,10 @@ pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec
     let m: &[u8; 1] = "M".as_bytes().try_into()?;
     let a: &[u8; 1] = "A".as_bytes().try_into()?;
     let n: &[u8; 1] = "N".as_bytes().try_into()?;
-    let sequence_type = 0x24 as u8;
-    let master_key_type = 0x71 as u8;
-    let signing_key_type = 0x73 as u8;
-    let domain_type = 0x77 as u8;
+    let sequence_type = 0x24_u8;
+    let master_key_type = 0x71_u8;
+    let signing_key_type = 0x73_u8;
+    let domain_type = 0x77_u8;
 
     // Prefix
     serialized_manifest.extend_from_slice(m);
@@ -139,7 +141,7 @@ pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec
     // Sequence
     serialized_manifest.extend_from_slice(sequence_type.to_le_bytes().as_ref());
     serialized_manifest
-        .extend_from_slice((decoded_manifest.sequence as u32).to_be_bytes().as_ref());
+        .extend_from_slice((decoded_manifest.sequence).to_be_bytes().as_ref());
 
     // Master Public Key
     serialized_manifest.extend_from_slice(master_key_type.to_le_bytes().as_ref());

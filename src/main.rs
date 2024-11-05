@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
                     .clone()
                     .decoded_manifest
                     .expect("Could not decode manifest");
-                let payload = serialize_manifest_data(&validator_manifest)?;
+                let payload = serialize_manifest_data(validator_manifest)?;
 
                 let manifest_master_validation = verify_signature(
                     &hex::encode(
@@ -154,7 +154,7 @@ async fn main() -> Result<()> {
                 ));
             }
 
-            if a_but_not_b.len() == 0 && b_but_not_a.len() == 0 {
+            if a_but_not_b.is_empty() && b_but_not_a.is_empty() {
                 println!(
                     "{} {}",
                     "Both UNLs have the same validators".green(),

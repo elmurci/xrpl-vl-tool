@@ -47,7 +47,7 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
             Ed25519VerifyingKey::from_bytes(&public_key_bytes).expect("Invalid ED25519 Public Key");
         let signature = Ed25519Signature::from_bytes(&signature_bytes);
         let verifier = Ed25519Verifier { verifying_key };
-        verifier.verify(&payload.to_vec(), &signature).is_ok()
+        verifier.verify(payload, &signature).is_ok()
     } else {
         let secp = Secp256k1::new();
         let signature =

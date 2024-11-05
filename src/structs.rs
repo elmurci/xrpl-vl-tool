@@ -54,7 +54,7 @@ impl Default for Unl {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DecodedManifest {
     pub sequence: u32,
     pub master_public_key: String,
@@ -62,19 +62,6 @@ pub struct DecodedManifest {
     pub signing_public_key: String,
     pub master_signature: String,
     pub domain: Option<String>,
-}
-
-impl Default for DecodedManifest {
-    fn default() -> DecodedManifest {
-        DecodedManifest {
-            sequence: 0,
-            master_public_key: String::from(""),
-            signature: String::from(""),
-            signing_public_key: String::from(""),
-            master_signature: String::from(""),
-            domain: None,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -109,7 +96,7 @@ where
 {
     pub fn verify(
         &self,
-        payload: &Vec<u8>,
+        payload: &[u8],
         signature: &ed25519::Signature,
     ) -> Result<(), ed25519::Error> {
         self.verifying_key.verify(payload, signature)

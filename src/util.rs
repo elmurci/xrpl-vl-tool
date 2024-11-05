@@ -29,7 +29,7 @@ pub fn sha512_first_half(message: &[u8]) -> Result<Vec<u8>> {
 pub fn double_sha256(hex_str: &str) -> Vec<u8> {
     let bin = hex::decode(hex_str).expect("Invalid hex string");
     let hash = Sha256::digest(&bin);
-    let hash2 = Sha256::digest(&hash);
+    let hash2 = Sha256::digest(hash);
     hash2.to_vec()
 }
 
@@ -56,20 +56,20 @@ pub fn decode_unl(unl: Unl) -> Result<Unl> {
 }
 
 pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
-    let contents = fs::read_to_string(file_path).expect(&format!("No such file: {}", file_path));
+    let contents = fs::read_to_string(file_path).unwrap_or_else(|_| format!("No such file: {}", file_path));
     let lines: Vec<String> = contents.split("\n").map(|s: &str| s.to_string()).collect();
     Ok(lines)
 }
 
 pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
-    let url = Url::parse(&url_or_file);
-    let unl: Unl;
+    
+    let url = Url::parse(url_or_file);
 
-    if url.is_err() {
-        unl = serde_json::from_str(&fs::read_to_string(url_or_file)?)?;
+    let unl: Unl = if url.is_err() {
+        serde_json::from_str(&fs::read_to_string(url_or_file)?)?
     } else {
-        unl = reqwest::get(url_or_file).await?.json::<Unl>().await?;
-    }
+        reqwest::get(url_or_file).await?.json::<Unl>().await?
+    };
     Ok(unl)
 }
 
