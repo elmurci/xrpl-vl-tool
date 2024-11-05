@@ -10,15 +10,15 @@ This tool allows you to `load`, `compare` (two) and `sign` UNL's.
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-manager load {url_or_path}`.
+`./xrpl-unl-manager load {url_or_path}`
 
 And loads the given UNL performing validations on manifests.
 
-Example request:
+*Example request:*
 
-`./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`.
+`./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`
 
-Example response:
+*Example response:*
 
 ```
 There are 35 validators in this UNL. Sequence is: 80 | Manifest: ✓ | UNL: ✓ | Expires: 2025-10-31 00:00:00 
@@ -66,13 +66,13 @@ UNL Signature ✓
 
 The command compares two given UNLs:
 
-`./xrpl-unl-manager compare {url_or_file_path_1} {url_or_file_path_2}`.
+`./xrpl-unl-manager compare {url_or_file_path_1} {url_or_file_path_2}`
 
-Example request:
+*Example request:*
 
-`./xrpl-unl-manager compare https://vl.xrplf.org /dev/unl.json`.
+`./xrpl-unl-manager compare https://vl.xrplf.org /dev/unl.json`
 
-Example response:
+*Example response:*
 
 ```
  https://vl.xrpl.vision (33)
@@ -94,10 +94,13 @@ Signs a new UNL retrieving the secret from AWS.
 
 `./xrpl-unl-manager sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {aws_secret_name}`
 
-Example request:
+*Example request:*
 
 `./xrpl-unl-manager sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 test/unl/tool`
 
+*Example response:*
+
+`UNL file generated ✓` (and timestamped file saved to the `dist` folder)
 
 ## Validator List fields
 
