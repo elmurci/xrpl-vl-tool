@@ -190,7 +190,7 @@ async fn main() -> Result<()> {
             };
 
             if params.len() != 6 {
-                return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days, secret_provider and secret_name must be passed"));
+                return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days, secret_provider and secret_id must be passed"));
             }
 
             let manifest = params[0].clone();

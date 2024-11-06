@@ -9,10 +9,10 @@ pub async fn get_secret(secret_provider: SecretProvider, id: &str) -> Result<Opt
         SecretProvider::Aws => get_aws_secret(id).await,
         SecretProvider::Vault => {
             let args: Vec<String> = id.split(":").map(|s| s.to_string()).collect();
-            if args.len() != 4 {
+            if args.len() != 2 {
                 return Err(anyhow!("Invalid Vault secret format"));
             }
-            get_vault_secret(&args[0], &args[1], &args[2]).await
+            get_vault_secret(&args[0], &args[1]).await
         },
     }
 }
@@ -28,14 +28,15 @@ pub async fn get_aws_secret(id: &str) -> Result<Option<Secret>> {
     }
 }
 
-pub async fn get_vault_secret(endpoint: &str, mount: &str, path: &str) -> Result<Option<Secret>> {
+pub async fn get_vault_secret(mount: &str, path: &str) -> Result<Option<Secret>> {
     let vault_token = env::var("VAULT_TOKEN")?;
-    if vault_token.is_empty() {
-        return Err(anyhow!("VAULT_TOKEN is not set"));
+    let vault_endpoint = env::var("VAULT_ENDPOINT")?;
+    if vault_token.is_empty() || vault_endpoint.is_empty() {
+        return Err(anyhow!("VAULT_TOKEN and VAULT_ENDPOINT need to be set"));
     }
     let client = VaultClient::new(
         VaultClientSettingsBuilder::default()
-            .address(endpoint)
+            .address(vault_endpoint)
             .token(vault_token)
             .build()
             .unwrap()

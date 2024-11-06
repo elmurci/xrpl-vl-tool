@@ -115,10 +115,11 @@ In order to retrieve the secret from AWS, the following environment variables ne
 For Vault secrets, the following environment variables are required:
 
 - `VAULT_TOKEN`
+- `VAULT_ENDPOINT`
 
 The format for secret name is `{endpoint}:{mount}:{path}`.
 
-`secret_name` example: `https://vault.mgt.ripplex.io:unl-tool/dev:keypair`.
+`secret_name` example: `unl-tool;dev:keypair`.
 
 #### Example
 
