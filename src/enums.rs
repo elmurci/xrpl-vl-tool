@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use anyhow::{anyhow, Result};
 
 #[derive(Subcommand)]
 pub enum Commands {
@@ -8,6 +9,28 @@ pub enum Commands {
     Compare { arg: Option<Vec<String>> },
     /// Prodces and signs a Validation List (connects to AWS to retrieve the keypair). Example: `./xrpl-unl-tool sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {aws_secret_name}`
     Sign { arg: Option<Vec<String>> },
+}
+
+#[derive(Debug)]
+pub enum SecretProvider {
+    Aws,
+    Vault,
+}
+
+impl SecretProvider {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SecretProvider::Aws => "aws",
+            SecretProvider::Vault => "vault"
+        }
+    }
+    pub fn from_str(input: &str) -> Result<SecretProvider> {
+        match input {
+            "aws"  => Ok(SecretProvider::Aws),
+            "vault"  => Ok(SecretProvider::Vault),
+            _      => Err(anyhow!("Could not parse secret provider value")),
+        }
+    }
 }
 
 #[derive(Debug)]

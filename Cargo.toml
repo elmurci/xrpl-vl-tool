@@ -24,3 +24,4 @@ secp256k1 = { version = "0.30.0", features = ["hashes"] }
 anstream = "0.6.18"
 chrono = "0.4.38"
 openssl = { version = "0.10", features = ["vendored"] }
+vaultrs = "0.7.1"

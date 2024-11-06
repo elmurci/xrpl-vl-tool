@@ -65,7 +65,7 @@ pub struct DecodedManifest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AwsSecret {
+pub struct Secret {
     pub public_key: String,
     pub private_key: String,
 }

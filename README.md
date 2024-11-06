@@ -14,6 +14,8 @@ The command allows for either a url or a file path:
 
 And loads the given UNL performing validations on manifests.
 
+#### Example
+
 *Example request:*
 
 `./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`
@@ -68,6 +70,8 @@ The command compares two given UNLs:
 
 `./xrpl-unl-manager compare {url_or_file_path_1} {url_or_file_path_2}`
 
+#### Example
+
 *Example request:*
 
 `./xrpl-unl-manager compare https://vl.xrplf.org /dev/unl.json`
@@ -92,11 +96,35 @@ The command compares two given UNLs:
 
 Signs a new UNL retrieving the secret from AWS.
 
-`./xrpl-unl-manager sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {aws_secret_name}`
+`./xrpl-unl-manager sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name}`
+
+
+#### AWS Secrets
+
+In order to retrieve the secret from AWS, the following environment variables need to be available:
+
+- AWS_REGION
+- AWS_ACCESS_KEY_ID
+- AWS_SESSION_TOKEN
+- AWS_SECRET_ACCESS
+
+`secret_name` example: `test/unl/tool`.
+
+#### Vault Secrets
+
+For Vault secrets, the following environments variables are required:
+
+- VAULT_TOKEN
+
+The format for secret name is `{endpoint}:{mount}:{path}`.
+
+`secret_name` example: `https://vault.mgt.ripplex.io:unl-tool/dev:keypair`.
+
+#### Example
 
 *Example request:*
 
-`./xrpl-unl-manager sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 test/unl/tool`
+`./xrpl-unl-manager sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 aws test/unl/tool`
 
 *Example response:*
 

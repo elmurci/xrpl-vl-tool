@@ -5,8 +5,9 @@ use chrono::{Duration, Utc};
 use clap::Parser;
 use color_eyre::owo_colors::OwoColorize;
 use crypto::{sign, verify_signature};
-use enums::{Commands, Version};
+use enums::{Commands, SecretProvider, Version};
 use manifest::{decode_manifest, serialize_manifest_data};
+use secret::{get_secret, get_vault_secret};
 use std::collections::HashSet;
 use structs::{Cli, DecodedBlob, Unl, Validator};
 use time::{convert_to_human_time, convert_to_ripple_time, convert_to_unix_time};
@@ -15,10 +16,10 @@ use util::{
     get_unl, hex_to_base58,
 };
 
-use crate::aws::get_secret;
-use crate::structs::AwsSecret;
+use crate::secret::get_aws_secret;
+use crate::structs::Secret;
 
-mod aws;
+mod secret;
 mod crypto;
 mod enums;
 mod manifest;
@@ -191,7 +192,7 @@ async fn main() -> Result<()> {
                 return Err(anyhow!("No URL or file was passed"));
             };
 
-            if params.len() != 5 {
+            if params.len() != 6 {
                 return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days and aws_secret_name must be passed"));
             }
 
@@ -199,17 +200,20 @@ async fn main() -> Result<()> {
             let manifests = params[1].clone();
             let sequence = params[2].parse::<u32>()?;
             let expiration_in_days = params[3].parse::<u16>()?;
-            let aws_secret_name = params[4].clone();
+            let secret_provider = SecretProvider::from_str(&params[4].clone());
+            let secret_name = params[5].clone();
+            let secret = get_secret(secret_provider?, &secret_name).await?;
 
-            let secret = get_secret(&aws_secret_name).await?;
+            println!("{:?}", secret);
 
             if secret.is_none() {
                 return Err(anyhow!("No secret was found"));
             }
 
-            let mut unl = Unl::default();
-            let keypair = serde_json::from_str::<AwsSecret>(&secret.unwrap())?;
+            let keypair = secret.unwrap();
 
+            let mut unl = Unl::default();
+ 
             unl.manifest = manifest;
             unl.public_key = keypair.public_key.clone();
 
