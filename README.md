@@ -103,18 +103,18 @@ Signs a new UNL retrieving the secret from AWS.
 
 In order to retrieve the secret from AWS, the following environment variables need to be available:
 
-- AWS_REGION
-- AWS_ACCESS_KEY_ID
-- AWS_SESSION_TOKEN
-- AWS_SECRET_ACCESS
+- `AWS_REGION`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SESSION_TOKEN`
+- `AWS_SECRET_ACCESS`
 
 `secret_name` example: `test/unl/tool`.
 
 #### Vault Secrets
 
-For Vault secrets, the following environments variables are required:
+For Vault secrets, the following environment variables are required:
 
-- VAULT_TOKEN
+- `VAULT_TOKEN`
 
 The format for secret name is `{endpoint}:{mount}:{path}`.
 
