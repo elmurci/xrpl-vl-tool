@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use vaultrs::{client::{VaultClient, VaultClientSettingsBuilder}, kv2};
+use std::env;
 
 use crate::{enums::SecretProvider, structs::Secret};
 
@@ -11,7 +12,7 @@ pub async fn get_secret(secret_provider: SecretProvider, id: &str) -> Result<Opt
             if args.len() != 4 {
                 return Err(anyhow!("Invalid Vault secret format"));
             }
-            get_vault_secret(&args[0], &args[1], &args[2], &args[3]).await
+            get_vault_secret(&args[0], &args[1], &args[2]).await
         },
     }
 }
@@ -27,11 +28,15 @@ pub async fn get_aws_secret(id: &str) -> Result<Option<Secret>> {
     }
 }
 
-pub async fn get_vault_secret(endpoint: &str, token: &str, mount: &str, path: &str) -> Result<Option<Secret>> {
+pub async fn get_vault_secret(endpoint: &str, mount: &str, path: &str) -> Result<Option<Secret>> {
+    let vault_token = env::var("VAULT_TOKEN")?;
+    if vault_token.is_empty() {
+        return Err(anyhow!("VAULT_TOKEN is not set"));
+    }
     let client = VaultClient::new(
         VaultClientSettingsBuilder::default()
             .address(endpoint)
-            .token(token)
+            .token(vault_token)
             .build()
             .unwrap()
     ).unwrap();

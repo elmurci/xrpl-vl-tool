@@ -7,7 +7,7 @@ use color_eyre::owo_colors::OwoColorize;
 use crypto::{sign, verify_signature};
 use enums::{Commands, SecretProvider, Version};
 use manifest::{decode_manifest, serialize_manifest_data};
-use secret::{get_secret, get_vault_secret};
+use secret::get_secret;
 use std::collections::HashSet;
 use structs::{Cli, DecodedBlob, Unl, Validator};
 use time::{convert_to_human_time, convert_to_ripple_time, convert_to_unix_time};
@@ -15,9 +15,6 @@ use util::{
     base58_decode, base58_to_hex, decode_unl, generate_unl_file, get_manifests, get_tick_or_cross,
     get_unl, hex_to_base58,
 };
-
-use crate::secret::get_aws_secret;
-use crate::structs::Secret;
 
 mod secret;
 mod crypto;
@@ -193,7 +190,7 @@ async fn main() -> Result<()> {
             };
 
             if params.len() != 6 {
-                return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days and aws_secret_name must be passed"));
+                return Err(anyhow!("Parameters missing: manifest, manifests, sequence, expiration_in_days, secret_provider and secret_name must be passed"));
             }
 
             let manifest = params[0].clone();
