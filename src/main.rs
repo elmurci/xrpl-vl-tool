@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
                 &serialize_manifest_data(&unl_decoded_manifest)?,
                 &unl_decoded_manifest.signature,
             );
-            println!("PEruco {}", manifest_verification);
+            
             let unl_verification = verify_signature(
                 &manifest_signin_key,
                 &BASE64_STANDARD.decode(&unl.blob)?,
