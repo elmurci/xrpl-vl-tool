@@ -1,6 +1,5 @@
 use crate::{
-    structs::DecodedManifest,
-    util::{bytes_to_base58, get_key_bytes}
+    enums::ManifestField, structs::DecodedManifest, util::{bytes_to_base58, get_key_bytes}
 };
 use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -29,34 +28,29 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
             )
         };
 
-        match manifest_field_type {
-            0x24 => {
+        let field_type = ManifestField::from_value(&manifest_field_type)?;
+        match field_type {
+            ManifestField::Sequence => {
                 result.sequence =
                     u32::from_be_bytes(data.try_into().expect("Invalid sequence length"));
             }
-            0x71 => {
+            ManifestField::MasterPublicKey => {
                 result.master_public_key = bytes_to_base58(&data)?;
             }
-            0x73 => {
+            ManifestField::SigningPublicKey => {
                 result.signing_public_key = bytes_to_base58(&data)?;
             }
-            0x76 => {
+            ManifestField::Signature => {
                 result.signature = hex::encode(data);
             }
-            0x7012 => {
+            ManifestField::MasterSignature => {
                 result.master_signature = hex::encode(data);
             }
-            0x77 => {
+            ManifestField::Domain => {
                 result.domain = Some(
                     String::from_utf8(data)
                         .expect("Invalid UTF-8 data")
                         .to_string(),
-                );
-            }
-            _ => {
-                println!(
-                    "Unexpected parsed field: {:x?} {:x?} {:x?}",
-                    manifest_field_type, data, remaining_bytes
                 );
             }
         }
@@ -124,39 +118,30 @@ pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec
     let signing_public_key =
         get_key_bytes(&decoded_manifest.signing_public_key).expect("Could not get bytes");
 
-    let m: &[u8; 1] = "M".as_bytes().try_into()?;
-    let a: &[u8; 1] = "A".as_bytes().try_into()?;
-    let n: &[u8; 1] = "N".as_bytes().try_into()?;
-    let sequence_type = 0x24_u8;
-    let master_key_type = 0x71_u8;
-    let signing_key_type = 0x73_u8;
-    let domain_type = 0x77_u8;
-
     // Prefix
-    serialized_manifest.extend_from_slice(m);
-    serialized_manifest.extend_from_slice(a);
-    serialized_manifest.extend_from_slice(n);
+    serialized_manifest.extend_from_slice(b"MAN");
+
     serialized_manifest.extend_from_slice(&[0]);
 
     // Sequence
-    serialized_manifest.extend_from_slice(sequence_type.to_le_bytes().as_ref());
+    serialized_manifest.extend_from_slice(&[ManifestField::Sequence as u8]);
     serialized_manifest
         .extend_from_slice((decoded_manifest.sequence).to_be_bytes().as_ref());
 
     // Master Public Key
-    serialized_manifest.extend_from_slice(master_key_type.to_le_bytes().as_ref());
+    serialized_manifest.extend_from_slice(&[ManifestField::MasterPublicKey as u8]);
     serialized_manifest.extend_from_slice((master_public_key.len() as u8).to_be_bytes().as_ref());
     serialized_manifest.extend_from_slice(&master_public_key);
 
     // Signing Public Key
-    serialized_manifest.extend_from_slice(signing_key_type.to_be_bytes().as_ref());
+    serialized_manifest.extend_from_slice(&[ManifestField::SigningPublicKey as u8]);
     serialized_manifest.extend_from_slice((signing_public_key.len() as u8).to_be_bytes().as_ref()); // PK Length
     serialized_manifest.extend_from_slice(&signing_public_key);
 
     // Domain
     if let Some(domain) = &decoded_manifest.domain {
         let domain = domain.as_bytes();
-        serialized_manifest.extend_from_slice(domain_type.to_be_bytes().as_ref());
+        serialized_manifest.extend_from_slice(&[ManifestField::Domain as u8]);
         serialized_manifest.extend_from_slice((domain.len() as u8).to_be_bytes().as_ref()); // PK Length
         serialized_manifest.extend_from_slice(domain);
     }

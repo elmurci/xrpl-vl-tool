@@ -26,6 +26,7 @@ mod util;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+
     let cli = Cli::parse();
 
     match &cli.command {
@@ -36,10 +37,15 @@ async fn main() -> Result<()> {
 
             let unl = get_unl(url_or_file).await?;
             let decoded_unl = decode_unl(unl.clone())?;
+
+            // Let's panic if the blob is not decodable
             let mut decoded_blob = decoded_unl.decoded_blob.expect("Could not decode blob");
+
+            // Or the manifest is incorrect
             let unl_decoded_manifest = decoded_unl
                 .decoded_manifest
                 .expect("Could not decode manifest");
+
             let manifest_signin_key = hex::encode(
                 base58_decode(
                     enums::Version::NodePublic,
@@ -47,12 +53,14 @@ async fn main() -> Result<()> {
                 )?,
             )
             .to_uppercase();
+    
+            
             let manifest_verification = verify_signature(
                 &manifest_signin_key,
-                &serialize_manifest_data(&unl_decoded_manifest)
-                    .expect("could not serialize manifest"),
+                &serialize_manifest_data(&unl_decoded_manifest)?,
                 &unl_decoded_manifest.signature,
             );
+            println!("PEruco {}", manifest_verification);
             let unl_verification = verify_signature(
                 &manifest_signin_key,
                 &BASE64_STANDARD.decode(&unl.blob)?,
@@ -62,39 +70,38 @@ async fn main() -> Result<()> {
             println!("\nThere are {} validators in this UNL. Sequence is: {} | Manifest: {} | UNL: {} | Expires: {} \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(manifest_verification), get_tick_or_cross(unl_verification), convert_to_human_time(expiration_unix_timestamp));
 
             for validator in decoded_blob.validators.iter_mut() {
-                let validator_manifest = &validator
-                    .clone()
-                    .decoded_manifest
-                    .expect("Could not decode manifest");
-                let payload = serialize_manifest_data(validator_manifest)?;
+                if let Some(validator_manifest) = &validator.decoded_manifest {
+                    let payload = serialize_manifest_data(validator_manifest)?;
 
-                let manifest_master_validation = verify_signature(
-                    &hex::encode(
-                        &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
-                    )
-                    .to_uppercase(),
-                    &payload,
-                    &validator_manifest.master_signature,
-                );
+                    let manifest_master_validation = verify_signature(
+                        &hex::encode(
+                            &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
+                        )
+                        .to_uppercase(),
+                        &payload,
+                        &validator_manifest.master_signature,
+                    );
 
-                let manifest_signing_validation = verify_signature(
-                    &hex::encode(
-                        &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
-                    )
-                    .to_uppercase(),
-                    &payload,
-                    &validator_manifest.signature,
-                );
-                validator.decoded_manifest = Some(validator_manifest.clone());
+                    let manifest_signing_validation = verify_signature(
+                        &hex::encode(
+                            &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
+                        )
+                        .to_uppercase(),
+                        &payload,
+                        &validator_manifest.signature,
+                    );
 
-                println!(
-                    "Validator: {} ({}) | Master: {}, Signing: {} | {}",
-                    &validator.validation_public_key,
-                    hex_to_base58(&validator.validation_public_key)?,
-                    get_tick_or_cross(manifest_master_validation),
-                    get_tick_or_cross(manifest_signing_validation),
-                    validator_manifest.clone().domain.unwrap_or("".to_string())
-                );
+                    println!(
+                        "Validator: {} ({}) | Master: {}, Signing: {} | {}",
+                        &validator.validation_public_key,
+                        hex_to_base58(&validator.validation_public_key)?,
+                        get_tick_or_cross(manifest_master_validation),
+                        get_tick_or_cross(manifest_signing_validation),
+                        validator_manifest.clone().domain.unwrap_or("".to_string())
+                    );
+                } else {
+
+                }
             }
         }
         Commands::Compare { arg } => {
@@ -113,9 +120,9 @@ async fn main() -> Result<()> {
             let unl_2 = get_unl(unl_2_id).await?;
             let decoded_unl_2 = decode_unl(unl_2.clone())?;
 
-            let decoded_unl_1_blob = decoded_unl_1.decoded_blob.expect("Could not decode blob");
+            let decoded_unl_1_blob = decoded_unl_1.decoded_blob.ok_or_else(|| anyhow!("Could not decode blob 1"))?;
             let decoded_unl_1_validators = decoded_unl_1_blob.validators;
-            let decoded_unl_2_blob = decoded_unl_2.decoded_blob.expect("Could not decode blob");
+            let decoded_unl_2_blob = decoded_unl_2.decoded_blob.ok_or_else(|| anyhow!("Could not decode blob 2"))?;
             let decoded_unl_2_validators = decoded_unl_2_blob.validators;
             let validators_manifests_1: Vec<String> = decoded_unl_1_validators
                 .iter()
@@ -132,9 +139,11 @@ async fn main() -> Result<()> {
             let b: HashSet<_> = validators_manifests_2.into_iter().collect();
             let mut a_but_not_b = vec![];
             let mut b_but_not_a = vec![];
+
+            // TODO: think of a more effective way of comparing
             for validator in a.difference(&b) {
                 let decoded_manifest =
-                    decode_manifest(validator).expect("Could not decode manifest");
+                    decode_manifest(validator)?;
                 a_but_not_b.push(format!(
                     "{} {}",
                     decoded_manifest.master_public_key,
@@ -144,7 +153,7 @@ async fn main() -> Result<()> {
 
             for validator in b.difference(&a) {
                 let decoded_manifest =
-                    decode_manifest(validator).expect("Could not decode manifest");
+                    decode_manifest(validator)?;
                 b_but_not_a.push(format!(
                     "{} {}",
                     decoded_manifest.master_public_key,
@@ -200,8 +209,6 @@ async fn main() -> Result<()> {
             let secret_provider = SecretProvider::from_str(&params[4].clone());
             let secret_name = params[5].clone();
             let secret = get_secret(secret_provider?, &secret_name).await?;
-
-            println!("{:?}", secret);
 
             if secret.is_none() {
                 return Err(anyhow!("No secret was found"));

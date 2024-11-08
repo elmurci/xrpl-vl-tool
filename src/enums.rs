@@ -57,3 +57,28 @@ impl Version {
         }
     }
 }
+
+#[repr(u16)]
+#[derive(Debug)]
+pub enum ManifestField {
+    Sequence = 0x24,
+    MasterPublicKey = 0x71,
+    SigningPublicKey = 0x73,
+    Signature = 0x76,
+    Domain = 0x77,
+    MasterSignature = 0x7012,
+}
+
+impl ManifestField {
+    pub fn from_value(input: &u16) -> Result<ManifestField> {
+        match input {
+            0x24  => Ok(ManifestField::Sequence),
+            0x71  => Ok(ManifestField::MasterPublicKey),
+            0x73  => Ok(ManifestField::SigningPublicKey),
+            0x76  => Ok(ManifestField::Signature),
+            0x77  => Ok(ManifestField::Domain),
+            0x7012  => Ok(ManifestField::MasterSignature),
+            _      => Err(anyhow!("Could not parse secret provider value")),
+        }
+    }
+}
