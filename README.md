@@ -10,7 +10,7 @@ This tool allows you to `load`, `compare` (two) and `sign` UNL's.
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-manager load {url_or_path}`
+`./xrpl-unl-tool load {url_or_path}`
 
 And loads the given UNL performing validations on manifests.
 
@@ -18,7 +18,7 @@ And loads the given UNL performing validations on manifests.
 
 *Example request:*
 
-`./xrpl-unl-manager load https://vl.xrplf.org` or `./xrpl-unl-manager load /dev/unl.json`
+`./xrpl-unl-tool load https://vl.xrplf.org` or `./xrpl-unl-tool load /dev/unl.json`
 
 *Example response:*
 
@@ -68,13 +68,13 @@ UNL Signature ✓
 
 The command compares two given UNLs:
 
-`./xrpl-unl-manager compare {url_or_file_path_1} {url_or_file_path_2}`
+`./xrpl-unl-tool compare {url_or_file_path_1} {url_or_file_path_2}`
 
 #### Example
 
 *Example request:*
 
-`./xrpl-unl-manager compare https://vl.xrplf.org /dev/unl.json`
+`./xrpl-unl-tool compare https://vl.xrplf.org /dev/unl.json`
 
 *Example response:*
 
@@ -96,7 +96,7 @@ The command compares two given UNLs:
 
 Signs a new UNL retrieving the secret from AWS.
 
-`./xrpl-unl-manager sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name}`
+`./xrpl-unl-tool sign {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name}`
 
 
 #### AWS Secrets
@@ -125,7 +125,7 @@ The format for secret name is `{endpoint}:{mount}:{path}`.
 
 *Example request:*
 
-`./xrpl-unl-manager sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 aws test/unl/tool`
+`./xrpl-unl-tool sign JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifests.txt 80 365 aws test/unl/tool`
 
 *Example response:*
 
@@ -147,7 +147,7 @@ The format for secret name is `{endpoint}:{mount}:{path}`.
 
 ### Manifest format
 
-The `manifest` is a base64-encoded structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-manager/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
+The `manifest` is a base64-encoded structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
 
 - `sequence`: Manifest sequence number.
 - `master_public_key`: The master public key (base58 encoded)
