@@ -14,7 +14,7 @@ use std::io::prelude::*;
 use url::Url;
 
 pub fn generate_unl_file(content: &str) -> Result<()> {
-    let mut file = File::create(format!("dist/index.json.{}", get_timestamp()))?;
+    let mut file = File::create(format!("index.json.{}", get_timestamp()))?;
     file.write_all(content.as_bytes())?;
     Ok(())
 }

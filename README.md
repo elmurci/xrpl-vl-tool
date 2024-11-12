@@ -129,7 +129,7 @@ The format for secret name is `{endpoint};{mount};{path}`.
 
 *Example response:*
 
-`UNL file generated ✓` (and timestamped file saved to the `dist` folder)
+`UNL file generated ✓` (and timestamped file saved to the current folder)
 
 ## Validator List fields
 
