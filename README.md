@@ -147,7 +147,7 @@ The format for secret name is `{endpoint};{mount};{path}`.
 
 ### Manifest format
 
-The `manifest` is a base64-encoded structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
+The `manifest` is a data structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
 
 - `sequence`: Manifest sequence number.
 - `master_public_key`: The master public key (base58 encoded)
