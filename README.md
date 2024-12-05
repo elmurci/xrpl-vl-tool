@@ -117,9 +117,9 @@ For Vault secrets, the following environment variables are required:
 - `VAULT_TOKEN`
 - `VAULT_ENDPOINT`
 
-The format for secret name is `{endpoint};{mount};{path}`.
+The format for secret name is `{mount}:{path}`.
 
-`secret_name` example: `unl-tool;dev;keypair`.
+`secret_name` example: `unl-tool/dev:keypair`.
 
 #### Example
 
