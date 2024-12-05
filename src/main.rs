@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
                 // UNL Summary
                 let decoded_blob = verified_vl.blob.clone().unwrap();
                 let expiration_unix_timestamp = convert_to_unix_time(decoded_blob.expiration);
-                println!("\nThere are {} validators in this UNL. Sequence is: {} | Manifest Signature: {} | Blob Signature: {} | Expires: {} | Version: 1 \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(verified_vl.blob_verification.expect("Could not get blob verification")), get_tick_or_cross(verified_vl.manifest_verification.expect("Could not get manifest verification")), convert_to_human_time(expiration_unix_timestamp));
+                println!("\nThere are {} validators in this VL. Sequence is: {} | Manifest Signature: {} | Blob Signature: {} | Expires: {} | Version: 1 \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(verified_vl.blob_verification.expect("Could not get blob verification")), get_tick_or_cross(verified_vl.manifest_verification.expect("Could not get manifest verification")), convert_to_human_time(expiration_unix_timestamp));
                 // Validators
                 let _ = print_validators_summary(decoded_blob.validators);
             } else {
@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
                     let expiration_unix_timestamp = convert_to_unix_time(decoded_blob.expiration);
                     let effective_unix_timestamp = convert_to_unix_time(decoded_blob.effective.expect("Could not get effective timestamp"));
                     // Summary
-                    println!("\n{}) There are {} validators in this UNL. Sequence is: {} | Blob Signature: {} | Effective from: {} | Expires: {} \n", index+1, decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(blob_v2.blob_verification.expect("Could not get blob verification flag")), convert_to_human_time(effective_unix_timestamp), convert_to_human_time(expiration_unix_timestamp));
+                    println!("\n{}) There are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Effective from: {} | Expires: {} \n", index+1, decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(blob_v2.blob_verification.expect("Could not get blob verification flag")), convert_to_human_time(effective_unix_timestamp), convert_to_human_time(expiration_unix_timestamp));
                     // Validators
                     let _ = print_validators_summary(decoded_blob.validators);
                 }

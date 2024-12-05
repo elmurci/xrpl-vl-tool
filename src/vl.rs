@@ -244,3 +244,13 @@ pub fn decode_vl_v2(vl: &Vl) -> Result<DecodedVl> {
         }
     )
 }
+
+
+// Tests
+// Version 1 and 2
+// VL's that should verify
+// VL's that shouldn't
+// Effective dates
+// Expiration dates
+// Optional signatures (!!!)
+// 
