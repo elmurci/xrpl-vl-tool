@@ -1,4 +1,4 @@
-# XRP Ledger UNL Tool
+# XRP Ledger Validators List Tool
 
 Tool to validate and sign Validators Lists.
 
@@ -15,7 +15,7 @@ For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-
 
 The command allows for either a url or a file path:
 
-`./xrpl-unl-tool load {url_or_path}`
+`./xrpl-vl-tool load {url_or_path}`
 
 And loads the given VL performing some validations.
 
@@ -23,7 +23,7 @@ And loads the given VL performing some validations.
 
 *Example request:*
 
-`./xrpl-unl-tool load https://vl.xrplf.org` or `./xrpl-unl-tool load /dev/unl.json`
+`./xrpl-vl-tool load https://vl.xrplf.org` or `./xrpl-vl-tool load /dev/vl.json`
 
 *Example response:*
 
@@ -72,9 +72,9 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 
 ### Sign
 
-Signs a new UNL retrieving the secret from AWS.
+Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
-`./xrpl-unl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
+`./xrpl-vl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
 
 #### AWS Secrets
 
@@ -85,7 +85,7 @@ In order to retrieve the secret from AWS, the following environment variables ne
 - `AWS_SESSION_TOKEN`
 - `AWS_SECRET_ACCESS`
 
-`secret_name` example: `test/unl/tool`.
+`secret_name` example: `test/vl/tool`.
 
 #### Vault Secrets
 
@@ -96,17 +96,17 @@ For Vault secrets, the following environment variables are required:
 
 The format for secret name is `{mount}:{path}`.
 
-`secret_name` example: `unl-tool/dev:keypair`.
+`secret_name` example: `vl-tool/dev:keypair`.
 
 #### Example
 
 *Example request:*
 
-`./xrpl-unl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifest_1.txt 81 365 vault unl-tool/dev:keypair 2015-09-05 23:56 test/data/generated_unl_v2_2.json`
+`./xrpl-vl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifest_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 test/data/generated_vl_v2_2.json`
 
 *Example response:*
 
-`UNL file generated ✓` (a timestamped json file saved to the current folder)
+`VL file generated ✓` (a timestamped json file saved to the current folder)
 
 ## Validator List fields
 
