@@ -92,25 +92,6 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_tick_or_cross_valid() {
-        let result = get_tick_or_cross(true);
-        let expected = "✓".green().to_string();
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_get_tick_or_cross_invalid() {
-        let result = get_tick_or_cross(false);
-        let expected = "x".red().to_string();
-        assert_eq!(result, expected);
-    }
-}
-
 pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
     for validator in validators.iter_mut() {
         if let Some(validator_manifest) = &validator.decoded_manifest {
@@ -145,4 +126,23 @@ pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_tick_or_cross_valid() {
+        let result = get_tick_or_cross(true);
+        let expected = "✓".green().to_string();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_get_tick_or_cross_invalid() {
+        let result = get_tick_or_cross(false);
+        let expected = "x".red().to_string();
+        assert_eq!(result, expected);
+    }
 }

@@ -2,22 +2,13 @@ use anstream::println;
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use color_eyre::owo_colors::OwoColorize;
-use enums::{Commands, SecretProvider};
-use time::{convert_to_human_time, convert_to_unix_time};
-use vl::{load_vl, sign_vl, verify_vl};
-use structs::Cli;
-use util::{
+use xrpl_vl_tool::enums::{Commands, SecretProvider};
+use xrpl_vl_tool::time::{convert_to_human_time, convert_to_unix_time};
+use xrpl_vl_tool::vl::{load_vl, sign_vl, verify_vl};
+use xrpl_vl_tool::structs::Cli;
+use xrpl_vl_tool::util::{
     generate_vl_file, get_tick_or_cross, print_validators_summary
 };
-
-mod secret;
-mod crypto;
-mod enums;
-mod manifest;
-mod structs;
-mod time;
-mod util;
-mod vl;
 
 #[tokio::main]
 async fn main() -> Result<()> {
