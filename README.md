@@ -4,7 +4,7 @@ Tool to validate and sign Validators Lists.
 
 ## Description
 
-This tool allows you to `load` and `sign` VL's.
+This tool allows you to `load` and `sign` VL's and `encode` and `decode` manifests.
 
 ### Versions supported
 
@@ -117,10 +117,8 @@ The format for secret name is `{mount}:{path}`.
     - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
         the list expires.
     - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
-- `manifest`: Base64-encoded serialization of a manifest containing the
-        publisher's master and signing public keys.
-- `signature`: Hex-encoded signature of the blob using the publisher's
-        signing key.
+- `manifest`: Base64-encoded serialization of a manifest containing the publisher's master and signing public keys.
+- `signature`: Hex-encoded signature of the blob using the publisher's signing key.
 - `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
 - `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
 
@@ -163,3 +161,23 @@ Example:
   "domain": "xrpl.org"
 }
 ```
+
+### Encode (manifest)
+
+Encodes a manifest, example:
+
+```
+
+```
+
+### Decode (manifest)
+
+Decodes a manifest, example:
+
+```
+
+```
+
+### Tests
+
+`cargo tests`

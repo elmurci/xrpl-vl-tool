@@ -1,9 +1,11 @@
 use crate::crypto::verify_signature;
 use crate::manifest::serialize_manifest_data;
-use crate::structs::Validator;
+use crate::structs::{DecodedManifest, Validator};
 use crate::time::get_timestamp;
 use crate::enums::Version;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use color_eyre::owo_colors::OwoColorize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
@@ -92,35 +94,58 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     }
 }
 
+pub fn verify_blob(blob: String, public_key: String, signature: String) -> Result<bool> {
+    Ok(
+        verify_signature(
+            &public_key,
+            BASE64_STANDARD.decode(blob)?.as_slice(),
+            &signature,
+        )
+    )
+}
+
+pub fn verify_manifest(validator_manifest: DecodedManifest) -> Result<DecodedManifest> {
+    let mut manifest = validator_manifest.clone();
+    let payload = serialize_manifest_data(&manifest)?;
+
+    let manifest_master_validation = verify_signature(
+        &hex::encode(
+            &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
+        )
+        .to_uppercase(),
+        &payload,
+        &validator_manifest.master_signature,
+    );
+
+    let manifest_signing_validation = verify_signature(
+        &hex::encode(
+            &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
+        )
+        .to_uppercase(),
+        &payload,
+        &validator_manifest.signature,
+    );
+
+    if !manifest_master_validation || !manifest_signing_validation {
+        return Err(anyhow!("Could not verify manifest, either manifest_master_validation or manifest_signing_validation failed."));
+    }
+
+    manifest.verification = true;
+
+    Ok(manifest)
+}
+
 pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
     for validator in validators.iter_mut() {
         if let Some(validator_manifest) = &validator.decoded_manifest {
-            let payload = serialize_manifest_data(validator_manifest)?;
-
-            let manifest_master_validation = verify_signature(
-                &hex::encode(
-                    &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
-                )
-                .to_uppercase(),
-                &payload,
-                &validator_manifest.master_signature,
-            );
-
-            let manifest_signing_validation = verify_signature(
-                &hex::encode(
-                    &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
-                )
-                .to_uppercase(),
-                &payload,
-                &validator_manifest.signature,
-            );
+            
+            let validator_validation = verify_manifest(validator_manifest.clone())?;
             
             println!(
-                "Validator: {} ({}) | Master: {}, Signing: {} | {}",
+                "Validator: {} ({}) | Verification: {} | {}",
                 &validator.validation_public_key,
                 hex_to_base58(&validator.validation_public_key)?,
-                get_tick_or_cross(manifest_master_validation),
-                get_tick_or_cross(manifest_signing_validation),
+                get_tick_or_cross(validator_validation.verification),
                 validator_manifest.clone().domain.unwrap_or("".to_string())
             );
         }

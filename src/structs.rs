@@ -29,12 +29,13 @@ pub struct Vl {
 pub struct DecodedVl {
     pub public_key: String,
     pub manifest: DecodedManifest,
-    pub blob: Option<DecodedBlob>, // Only for v1
+    pub blob: Option<String>, // Only for v1
     pub blobs_v2: Option<Vec<BlobV2>>, // Only for v2
+    pub decoded_blob: Option<DecodedBlob>, // Only for v1
+    pub decoded_blobs_v2: Option<Vec<BlobV2>>, // Only for v2
     pub signature: Option<String>, // Only for v1
     pub version: u8,
     pub blob_verification: Option<bool>,
-    pub manifest_verification: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
