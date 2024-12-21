@@ -6,7 +6,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use url::Url;
 use anyhow::anyhow;
 
-use crate::{crypto::{sign, verify_signature}, enums::{self, SecretProvider}, manifest::{decode_manifest, serialize_manifest_data}, secret::get_secret, structs::{BlobV2, DecodedBlob, DecodedVl, Validator, Vl}, time::convert_to_ripple_time, util::{base58_decode, base58_to_hex, get_manifests, verify_blob, verify_manifest}};
+use crate::{crypto::{sign, verify_signature}, enums::{self, SecretProvider, Version}, manifest::{decode_manifest, serialize_manifest_data}, secret::get_secret, structs::{BlobV2, DecodedBlob, DecodedVl, Validator, Vl}, time::convert_to_ripple_time, util::{base58_decode, base58_to_hex, get_manifests, verify_manifest}};
 
 pub async fn get_vl(url_or_file: &str) -> Result<Vl> {
     
@@ -38,7 +38,8 @@ pub async fn load_vl(url_or_file: &str) -> Result<DecodedVl> {
 }
 
 pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
-
+    
+    let public_key = base58_to_hex(&vl.manifest.signing_public_key.clone(), Version::NodePublic).to_uppercase();
     // Manifest Verification
     let manifest_signin_key = hex::encode(
         base58_decode(
@@ -52,8 +53,8 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         &manifest_signin_key,
         &serialize_manifest_data(&vl.manifest)?,
         &vl.manifest.signature,
-    );
-
+    )?;
+    
     vl.manifest.verification =  manifest_verification;
 
     // With version 1 there is only one blob
@@ -62,19 +63,20 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         // Blob verification verifies each validator manifest
         for validator in decoded_blob.validators.iter_mut() {
             let verified_validator = verify_manifest(validator.decoded_manifest.clone().expect("Could not get decoded manifest"))?;
-            validator.decoded_manifest = Some(verified_validator);
+            validator.decoded_manifest = Some(verified_validator.clone()); 
         }
         vl.decoded_blob = Some(decoded_blob);
-        let verify_blob = verify_blob(
-            vl.blob.clone().expect("msg"),
-            base58_to_hex(&vl.manifest.signing_public_key.clone()).to_uppercase(),
-            vl.signature.clone().expect("msg")
-        );
-        vl.blob_verification = Some(verify_blob?);
+        let verify_blob = verify_signature(
+            &public_key,
+            vl.blob.clone().expect("Could not get blob from v1 vl").as_bytes(),
+            &vl.signature.clone().expect("Could not get signature from v1 vl"),
+        )?;
+        
+        vl.blob_verification = Some(verify_blob);
     } else {
         // With version 2, there might be multiple blobs
         let decoded_blobs_v2 = vl.decoded_blobs_v2.as_mut().expect("Could not get decoded blobs v2");
-        for blob_v2 in decoded_blobs_v2.iter_mut() {
+        for (index, blob_v2) in decoded_blobs_v2.iter_mut().enumerate() {
             let mut decoded_blob = blob_v2.clone().decoded_blob.expect("Could not get decoded blob");
             // TODO: move to a function
             for validator in decoded_blob.validators.iter_mut() {
@@ -82,20 +84,25 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
                 validator.decoded_manifest = Some(verified_validator);
             }
             blob_v2.blob_verification = Some(true);
-            let verify_blob = verify_blob(
-                vl.blob.clone().expect("msg"),
-                base58_to_hex(&vl.manifest.signing_public_key.clone()).to_uppercase(),
-                vl.signature.clone().expect("msg")
-            );
-            blob_v2.blob_verification = Some(verify_blob?);
+            let blobs_v2 = &vl.blobs_v2.clone().expect("Could not get blobs v2 from vl")[index];
+            let verify_blob = verify_signature(
+                &public_key,
+                blobs_v2.blob.clone().expect("Could not get blob from blobs_v2").as_bytes(),
+                &blobs_v2.signature.clone()
+            )?;
+
+            blob_v2.blob_verification = Some(verify_blob);
             blob_v2.decoded_blob = Some(decoded_blob);
         }
+
+        vl.decoded_blobs_v2 = Some(decoded_blobs_v2.clone());
     }
 
     Ok(vl)
 
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn sign_vl(
     version: u8,
     manifest: String,
@@ -107,6 +114,7 @@ pub async fn sign_vl(
     effective: Option<String>,
     v2_vl_file: Option<String>,
 ) -> Result<Vl> {
+    let decoded_publisher_manifest = decode_manifest(&manifest)?;
     let secret = get_secret(secret_provider, &secret_name).await?;
     if secret.is_none() {
         return Err(anyhow!("No secret was found"));
@@ -126,7 +134,7 @@ pub async fn sign_vl(
     for manifest in manifests {
         let decoded_manifest = decode_manifest(&manifest)?;
         let validator = Validator {
-            validation_public_key: base58_to_hex(&decoded_manifest.master_public_key)
+            validation_public_key: base58_to_hex(&decoded_manifest.master_public_key, Version::NodePublic)
                 .to_uppercase(),
             manifest: Some(manifest),
             decoded_manifest: None,
@@ -145,7 +153,6 @@ pub async fn sign_vl(
         } else {
             return Err(anyhow!("Effective date must be before expiration date"));
         }
-
         // TODO: can't be in the past or in the same time as another unl in the array
     } else {
         None
@@ -159,11 +166,15 @@ pub async fn sign_vl(
     };
 
     let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
+    let vl_blob = BASE64_STANDARD.encode(decoded_blob_payload.clone());
     let signature = sign(
         &keypair.public_key,
         &keypair.private_key,
-        &decoded_blob_payload,
-    );
+        &vl_blob,
+    )?;
+    
+    vl.public_key = base58_to_hex(&decoded_publisher_manifest.master_public_key, Version::NodePublic).to_uppercase();
+    vl.manifest = manifest.clone();
 
     // For version 1, we will generate a brand new file each time
     // For version 2, we can do the same but also start from an existing file.
@@ -171,11 +182,11 @@ pub async fn sign_vl(
 
     if version == 1 {
         vl.signature = Some(signature.clone());
-        vl.blob = Some(BASE64_STANDARD.encode(decoded_blob_payload.clone()));
+        vl.blob = Some(vl_blob);
     } else {
         if v2_vl_file.is_none() {
             vl.manifest = manifest;
-            vl.public_key = keypair.public_key.clone();
+            vl.public_key = keypair.public_key;
             vl.blobs_v2 = Some(vec![]);
         }
 
@@ -196,7 +207,7 @@ pub async fn sign_vl(
 }
 
 pub fn decode_vl_v1(vl: &Vl) -> Result<DecodedVl> {
-    let decoded = BASE64_STANDARD.decode(&vl.blob.clone().expect("Could not decode VL (v1) Blob"))?;
+    let decoded = BASE64_STANDARD.decode(vl.blob.clone().expect("Could not decode VL (v1) Blob"))?;
     let mut decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
     for validator in decoded_blob.validators.iter_mut() {
         if validator.manifest.is_some() {
@@ -204,7 +215,7 @@ pub fn decode_vl_v1(vl: &Vl) -> Result<DecodedVl> {
             validator.decoded_manifest = Some(manifest.clone());
         }
     }
-    let decoded_publisher_manifest = Some(decode_manifest(&vl.manifest)?).expect("Could not decode the publisher manifest");
+    let decoded_publisher_manifest = decode_manifest(&vl.manifest)?;
     Ok(
         DecodedVl {
             public_key: vl.public_key.clone(),
@@ -221,11 +232,11 @@ pub fn decode_vl_v1(vl: &Vl) -> Result<DecodedVl> {
 }
 
 pub fn decode_vl_v2(vl: &Vl) -> Result<DecodedVl> {
-    let decoded_publisher_manifest = Some(decode_manifest(&vl.manifest)?).expect("Could not decode the publisher manifest");
+    let decoded_publisher_manifest = decode_manifest(&vl.manifest)?;
     let mut blobsv2: Vec<BlobV2> = vec![];
     // For each blob v2
     for blobv2 in vl.blobs_v2.clone().expect("Could not decode VL (v2) Blobs") {
-        let decoded = BASE64_STANDARD.decode(&blobv2.blob.expect("Could not decode blob v2"))?;
+        let decoded = BASE64_STANDARD.decode(blobv2.blob.expect("Could not decode blob v2"))?;
         let mut decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
         for validator in decoded_blob.validators.iter_mut() {
             if validator.manifest.is_some() {

@@ -74,7 +74,7 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 
 Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
-`./xrpl-vl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
+`./xrpl-vl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(local, aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
 
 #### AWS Secrets
 
@@ -98,11 +98,22 @@ The format for secret name is `{mount}:{path}`.
 
 `secret_name` example: `vl-tool/dev:keypair`.
 
+#### Local Secrets (only recommended for local testing)
+
+For local secrets, specify the path to a file containing the public and private keys, in the following format:
+
+```
+{
+    "public_key": "{the public key}",
+    "private_key": "{the private key}"
+}
+```
+
 #### Example
 
 *Example request:*
 
-`./xrpl-vl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== test/data/manifest_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 test/data/generated_vl_v2_2.json`
+`./xrpl-vl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== tests/data/manifests_list_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 tests/data/vl_v2_2.json`
 
 *Example response:*
 
@@ -133,14 +144,13 @@ The format for secret name is `{mount}:{path}`.
       - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
           the list expires.
       - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
-- `manifest`: Base64-encoded serialization of a manifest containing the
-        publisher's master and signing public keys.
+- `manifest`: Base64-encoded serialization of a manifest containing the publisher's master and signing public keys.
 - `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
 - `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
 
 ### Manifest format
 
-The `manifest` is a data structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-unl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
+The `manifest` is a data structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-vl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
 
 - `sequence`: Manifest sequence number.
 - `master_public_key`: The master public key (base58 encoded)

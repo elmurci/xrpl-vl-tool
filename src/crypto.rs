@@ -1,38 +1,41 @@
+use anyhow::Result;
 use ed25519::signature::SignerMut;
 use ed25519_dalek::{
     Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
     VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
 };
 use secp256k1::{
-    ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, Secp256k1,
+    ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, SecretKey
 };
+use std::str;
 use std::str::FromStr;
 
+use crate::util::sha512_first_half;
 use crate::{
     structs::Ed25519Verifier,
-    util::{get_key_bytes, sha512_first_half},
+    util::get_key_bytes,
 };
 
-pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> String {
+pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> Result<String> {
     let is_ed25519 = public_key_hex.starts_with("ED");
-    if is_ed25519 {
-        let private_key_bytes: [u8; 32] = hex::decode(private_key_hex)
+    let private_key_bytes: [u8; 32] = hex::decode(private_key_hex)
             .expect("Could not decode from hex")
             .try_into()
-            .expect("Could not convert to ed25519 key");
+            .expect("Private key should be 32 bytes long");
+    let payload_bytes = payload.as_bytes();
+    if is_ed25519 {
         let mut signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
-        signing_key.sign(payload.as_bytes()).to_string()
+        Ok(signing_key.sign(payload_bytes).to_string())
     } else {
-        // let secp = Secp256k1::new();
-        // let secret_key = Secp256k1SecretKey::from_str(private_key_hex).expect("Invalid Secp256k1 Secret Key");
-        // let message = Message::from_digest(sha512_first_half(payload.as_bytes().unwrap().try_into().unwrap())?);
-        // let signature = secp.sign(&message, &secret_key);
-        // signature.to_string()
-        todo!()
+        let message_hash = sha512_first_half(payload_bytes)?;
+        let msg = Message::from_digest_slice(message_hash.as_ref()).unwrap();
+        let private_key = SecretKey::from_slice(&private_key_bytes).unwrap();
+        let signature = private_key.sign_ecdsa(msg).to_string().to_uppercase();
+        Ok(signature)
     }
 }
 
-pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -> bool {
+pub fn verify_signature(public_key_hex: &str, payload_bytes: &[u8], signature: &str) -> Result<bool> {
     let is_ed25519 = public_key_hex.starts_with("ED");
     let public_key_bytes = get_key_bytes(public_key_hex).expect("Could not get bytes");
     if is_ed25519 {
@@ -47,16 +50,12 @@ pub fn verify_signature(public_key_hex: &str, payload: &[u8], signature: &str) -
             Ed25519VerifyingKey::from_bytes(&public_key_bytes).expect("Invalid ED25519 Public Key");
         let signature = Ed25519Signature::from_bytes(&signature_bytes);
         let verifier = Ed25519Verifier { verifying_key };
-        verifier.verify(payload, &signature).is_ok()
+        Ok(verifier.verify(payload_bytes, &signature).is_ok())
     } else {
-        let secp = Secp256k1::new();
-        let signature =
-            Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
-        let digest = sha512_first_half(payload);
-        let p: [u8; 32] = digest.unwrap().try_into().unwrap();
-        let message = Message::from_digest(p);
-        let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes)
-            .expect("Invalid Secp256k1 Public Key");
-        secp.verify_ecdsa(&message, &signature, &public_key).is_ok()
+        let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
+        let message_hash = sha512_first_half(payload_bytes)?;
+        let msg = Message::from_digest_slice(message_hash.as_ref()).unwrap();
+        let sig = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
+        Ok(sig.verify(&msg, &public_key).is_ok())
     }
 }

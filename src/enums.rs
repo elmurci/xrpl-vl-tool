@@ -17,19 +17,22 @@ pub enum Commands {
 pub enum SecretProvider {
     Aws,
     Vault,
+    Local,
 }
 
 impl SecretProvider {
     pub fn as_str(&self) -> &'static str {
         match self {
             SecretProvider::Aws => "aws",
-            SecretProvider::Vault => "vault"
+            SecretProvider::Vault => "vault",
+            SecretProvider::Local => "local"
         }
     }
-    pub fn from_str(input: &str) -> Result<SecretProvider> {
+    pub fn from_string_slice(input: &str) -> Result<SecretProvider> {
         match input {
             "aws"  => Ok(SecretProvider::Aws),
             "vault"  => Ok(SecretProvider::Vault),
+            "local"  => Ok(SecretProvider::Local),
             _      => Err(anyhow!("Could not parse secret provider value")),
         }
     }
@@ -39,11 +42,10 @@ impl SecretProvider {
 pub enum Version {
     // None,
     NodePublic,
-    // NodePrivate,
+    NodePrivate,
     // AccountID,
     // AccountPublic,
     // AccountSecret,
-    // // FamilyGenerator,
     // FamilySeed,
 }
 
@@ -51,7 +53,7 @@ impl Version {
     pub fn value(&self) -> u8 {
         match *self {
             Version::NodePublic => 28,
-            // Version::NodePrivate => 32,
+            Version::NodePrivate => 32,
             // Version::AccountID => 0,
             // Version::AccountPublic => 35,
             // Version::AccountSecret => 34,

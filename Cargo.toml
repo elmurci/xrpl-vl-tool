@@ -28,7 +28,7 @@ aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
 color-eyre = "0.6.3"
 ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
 ed25519 = "2.2.3"
-secp256k1 = { version = "0.30.0", features = ["hashes"] }
+secp256k1 = { version = "0.30.0", features = ["hashes", "global-context"] }
 anstream = "0.6.18"
 chrono = "0.4.38"
 openssl = { version = "0.10", features = ["vendored"] }

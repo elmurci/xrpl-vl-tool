@@ -6,7 +6,7 @@ use xrpl_vl_tool::enums::{Commands, SecretProvider};
 use xrpl_vl_tool::manifest::{decode_manifest, encode_manifest};
 use xrpl_vl_tool::time::{convert_to_human_time, convert_to_unix_time};
 use xrpl_vl_tool::vl::{load_vl, sign_vl, verify_vl};
-use xrpl_vl_tool::structs::{Cli, DecodedManifest};
+use xrpl_vl_tool::structs::Cli;
 use xrpl_vl_tool::util::{
     generate_vl_file, get_tick_or_cross, print_validators_summary
 };
@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
             let manifests_file = params[2].clone();
             let sequence = params[3].parse::<u32>()?;
             let expiration_in_days = params[4].parse::<u16>()?;
-            let secret_provider = SecretProvider::from_str(&params[5].clone())?;
+            let secret_provider = SecretProvider::from_string_slice(&params[5].clone())?;
             let secret_name = params[6].clone();
             let effective = if version == 2 {
                 if params.len() > 8 {
@@ -91,8 +91,8 @@ async fn main() -> Result<()> {
             ).await?;
 
             let vl_content = &serde_json::to_string(&vl)?;
-            let file = generate_vl_file(vl_content, version).is_ok();
-            println!("Validators List v{} file generated {}", version, get_tick_or_cross(file));
+            let file = generate_vl_file(vl_content, version);
+            println!("Validators List v{} file generated {} ({})", version, get_tick_or_cross(file.is_ok()), file?);
          },
          Commands::EncodeManifest { arg } => {
             let Some(params) = arg else {
@@ -130,15 +130,15 @@ async fn main() -> Result<()> {
                 return Err(anyhow!("No manifest passed"));
             };
 
-            let decoded_manifest = decode_manifest(&manifest)?;
+            let decoded_manifest = decode_manifest(manifest)?;
             
             println!("\n Decoded manifest: \n\n Sequence: {} \n Master Public Key: {} \n Signing Public Key: {} \n Signature: {} \n Master Signature: {} \n Domain: {:?} \n",
-            decoded_manifest.sequence,
-            decoded_manifest.master_public_key,
-            decoded_manifest.signing_public_key,
-            decoded_manifest.signature.to_uppercase(),
-            decoded_manifest.master_signature.to_uppercase(),
-            decoded_manifest.domain,
+                decoded_manifest.sequence,
+                decoded_manifest.master_public_key,
+                decoded_manifest.signing_public_key,
+                decoded_manifest.signature.to_uppercase(),
+                decoded_manifest.master_signature.to_uppercase(),
+                decoded_manifest.domain,
             );
          }
     }
