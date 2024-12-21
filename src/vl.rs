@@ -83,18 +83,15 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
                 let verified_validator = verify_manifest(validator.decoded_manifest.clone().expect("Could not get decoded manifest"))?;
                 validator.decoded_manifest = Some(verified_validator);
             }
-            blob_v2.blob_verification = Some(true);
             let blobs_v2 = &vl.blobs_v2.clone().expect("Could not get blobs v2 from vl")[index];
             let verify_blob = verify_signature(
                 &public_key,
                 blobs_v2.blob.clone().expect("Could not get blob from blobs_v2").as_bytes(),
                 &blobs_v2.signature.clone()
             )?;
-
             blob_v2.blob_verification = Some(verify_blob);
             blob_v2.decoded_blob = Some(decoded_blob);
         }
-
         vl.decoded_blobs_v2 = Some(decoded_blobs_v2.clone());
     }
 

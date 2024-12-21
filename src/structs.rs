@@ -35,6 +35,7 @@ pub struct DecodedVl {
     pub decoded_blobs_v2: Option<Vec<BlobV2>>, // Only for v2
     pub signature: Option<String>, // Only for v1
     pub version: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_verification: Option<bool>,
 }
 
@@ -56,6 +57,7 @@ pub struct BlobV2 {
     pub blob: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decoded_blob: Option<DecodedBlob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_verification: Option<bool>,
 }
 
