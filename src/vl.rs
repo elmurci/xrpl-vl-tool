@@ -63,7 +63,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         // Blob verification verifies each validator manifest
         for validator in decoded_blob.validators.iter_mut() {
             let verified_validator = verify_manifest(validator.decoded_manifest.clone().expect("Could not get decoded manifest"))?;
-            validator.decoded_manifest = Some(verified_validator.clone()); 
+            validator.decoded_manifest = Some(verified_validator.clone());
         }
         vl.decoded_blob = Some(decoded_blob);
         let verify_blob = verify_signature(
@@ -183,7 +183,6 @@ pub async fn sign_vl(
     } else {
         if v2_vl_file.is_none() {
             vl.manifest = manifest;
-            vl.public_key = keypair.public_key;
             vl.blobs_v2 = Some(vec![]);
         }
 
