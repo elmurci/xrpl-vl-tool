@@ -4,18 +4,17 @@ use crate::structs::{DecodedManifest, Validator};
 use crate::time::get_timestamp;
 use crate::enums::Version;
 use anyhow::{anyhow, Result};
-use base64::prelude::BASE64_STANDARD;
-use base64::Engine;
 use color_eyre::owo_colors::OwoColorize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 
-pub fn generate_vl_file(content: &str, version: u8) -> Result<()> {
-    let mut file = File::create(format!("generated_vl_v{}.json.{}", version, get_timestamp()))?;
+pub fn generate_vl_file(content: &str, version: u8) -> Result<String> {
+    let file_name = format!("generated_vl_v{}-{}.json", version, get_timestamp());
+    let mut file = File::create(&file_name)?;
     file.write_all(content.as_bytes())?;
-    Ok(())
+    Ok(file_name)
 }
 
 pub fn sha512_first_half(message: &[u8]) -> Result<Vec<u8>> {
@@ -47,8 +46,8 @@ pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
     Ok(lines)
 }
 
-pub fn base58_to_hex(bae58_string: &str) -> String {
-    let decb58 = base58_decode(Version::NodePublic, bae58_string).expect("Invalid base58 string");
+pub fn base58_to_hex(bae58_string: &str, version: Version) -> String {
+    let decb58 = base58_decode(version, bae58_string).expect("Invalid base58 string");
     hex::encode(decb58)
 }
 
@@ -94,37 +93,27 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     }
 }
 
-pub fn verify_blob(blob: String, public_key: String, signature: String) -> Result<bool> {
-    Ok(
-        verify_signature(
-            &public_key,
-            BASE64_STANDARD.decode(blob)?.as_slice(),
-            &signature,
-        )
-    )
-}
-
-pub fn verify_manifest(validator_manifest: DecodedManifest) -> Result<DecodedManifest> {
-    let mut manifest = validator_manifest.clone();
+pub fn verify_manifest(decoded_manifest: DecodedManifest) -> Result<DecodedManifest> {
+    let mut manifest = decoded_manifest.clone();
     let payload = serialize_manifest_data(&manifest)?;
 
     let manifest_master_validation = verify_signature(
         &hex::encode(
-            &base58_decode(Version::NodePublic, &validator_manifest.master_public_key)?,
+            &base58_decode(Version::NodePublic, &decoded_manifest.master_public_key)?,
         )
         .to_uppercase(),
         &payload,
-        &validator_manifest.master_signature,
-    );
+        &decoded_manifest.master_signature,
+    )?;
 
     let manifest_signing_validation = verify_signature(
         &hex::encode(
-            &base58_decode(Version::NodePublic, &validator_manifest.signing_public_key)?,
+            &base58_decode(Version::NodePublic, &decoded_manifest.signing_public_key)?,
         )
         .to_uppercase(),
         &payload,
-        &validator_manifest.signature,
-    );
+        &decoded_manifest.signature,
+    )?;
 
     if !manifest_master_validation || !manifest_signing_validation {
         return Err(anyhow!("Could not verify manifest, either manifest_master_validation or manifest_signing_validation failed."));
