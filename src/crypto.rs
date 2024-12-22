@@ -16,13 +16,12 @@ use crate::{
     util::get_key_bytes,
 };
 
-pub fn sign(public_key_hex: &str, private_key_hex: &str, payload: &str) -> Result<String> {
+pub fn sign(public_key_hex: &str, private_key_hex: &str, payload_bytes: &[u8]) -> Result<String> {
     let is_ed25519 = public_key_hex.starts_with("ED");
     let private_key_bytes: [u8; 32] = hex::decode(private_key_hex)
             .expect("Could not decode from hex")
             .try_into()
             .expect("Private key should be 32 bytes long");
-    let payload_bytes = payload.as_bytes();
     if is_ed25519 {
         let mut signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
         Ok(signing_key.sign(payload_bytes).to_string())
@@ -51,6 +50,7 @@ pub fn verify_signature(public_key_hex: &str, payload_bytes: &[u8], signature: &
         let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
         let message_hash = sha512_first_half(payload_bytes)?;
         let msg = Message::from_digest_slice(message_hash.as_ref()).unwrap();
+        // println!("public_key_hex: {}, signature: {}", public_key_hex, signature);
         let sig = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
         Ok(sig.verify(&msg, &public_key).is_ok())
     }
@@ -67,20 +67,20 @@ mod tests {
     async fn test_sign_and_verify_ed25519() {
         let mut csprng = OsRng;
         let signing_key: SigningKey = SigningKey::generate(&mut csprng);
-        let message = "Hello, world";
+        let message = "Hello, world".as_bytes();
         let public_key_hex = format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
         let private_key_hex = hex::encode(signing_key.to_bytes());
         let signed_message = sign(&public_key_hex, &private_key_hex, message).unwrap();
-        assert!(verify_signature(&public_key_hex, message.as_bytes(), &signed_message).unwrap());
+        assert!(verify_signature(&public_key_hex, message, &signed_message).unwrap());
     }
 
     #[tokio::test]
     async fn test_sign_and_verify_secp256k1() {
         let secp = Secp256k1::new();
-        let message = "Hello, world";
+        let message = "Hello, world".as_bytes();
         let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
         let private_key_hex = hex::encode(private_key.secret_bytes());
         let signed_message = sign(&public_key.to_string(), &private_key_hex, message).unwrap();
-        assert!(verify_signature(&public_key.to_string(), message.as_bytes(), &signed_message).unwrap());
+        assert!(verify_signature(&public_key.to_string(), message, &signed_message).unwrap());
     }
 }

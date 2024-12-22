@@ -1,11 +1,13 @@
 use anstream::println;
 use anyhow::{anyhow, Result};
+use chrono::NaiveDateTime;
 use clap::Parser;
 use color_eyre::owo_colors::OwoColorize;
 use xrpl_vl_tool::enums::{Commands, SecretProvider};
 use xrpl_vl_tool::manifest::{decode_manifest, encode_manifest};
+use xrpl_vl_tool::secret::get_secret;
 use xrpl_vl_tool::time::{convert_to_human_time, convert_to_unix_time};
-use xrpl_vl_tool::vl::{load_vl, sign_vl, verify_vl};
+use xrpl_vl_tool::vl::{get_vl, load_vl, sign_vl, verify_vl};
 use xrpl_vl_tool::structs::Cli;
 use xrpl_vl_tool::util::{
     generate_vl_file, get_tick_or_cross, print_validators_summary
@@ -65,18 +67,24 @@ async fn main() -> Result<()> {
             let secret_name = params[6].clone();
             let effective = if version == 2 {
                 if params.len() > 8 {
-                    Some(format!("{}{}", params[7].clone(), params[8].clone()))
+                    let effective_string = format!("{}{}", params[7].clone(), params[8].clone());
+                    Some(NaiveDateTime::parse_from_str(&effective_string, "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp())
                 } else {
                     return Err(anyhow!("Please specify a valid effective date and time"));
                 }
             } else {
                 None
             };
-            let v2_vl_file = if params.len() > 9 {
-                Some(params[9].clone())
+            let v2_vl = if params.len() > 9 {
+                Some(get_vl(&params[9].clone()).await?)
             } else {
                 None
             };
+
+            let secret = get_secret(secret_provider, &secret_name).await?;
+            if secret.is_none() {
+                return Err(anyhow!("No secret was found"));
+            }
 
             let vl = sign_vl(
                 version,
@@ -84,10 +92,9 @@ async fn main() -> Result<()> {
                 manifests_file,
                 sequence,
                 expiration_in_days,
-                secret_provider,
-                secret_name,
+                secret.unwrap(),
                 effective,
-                v2_vl_file,
+                v2_vl,
             ).await?;
 
             let vl_content = &serde_json::to_string(&vl)?;
