@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use vaultrs::{client::{VaultClient, VaultClientSettingsBuilder}, kv2};
-use std::env;
+use std::{env, fs};
 
 use crate::{enums::SecretProvider, structs::Secret};
 
@@ -14,6 +14,11 @@ pub async fn get_secret(secret_provider: SecretProvider, id: &str) -> Result<Opt
             }
             get_vault_secret(&args[0], &args[1]).await
         },
+        SecretProvider::Local => {
+            let keys_content = fs::read_to_string(id);
+            let secret = serde_json::from_str::<Secret>(&keys_content?)?;
+            Ok(Some(secret))
+        },
     }
 }
 
@@ -22,7 +27,7 @@ pub async fn get_aws_secret(id: &str) -> Result<Option<Secret>> {
     let client = aws_sdk_secretsmanager::Client::new(&config);
     let resp = client.get_secret_value().secret_id(id).send().await?;
     if resp.secret_string.is_none() {
-        return Ok(None);
+        Ok(None)
     } else {
         Ok(Some(serde_json::from_str::<Secret>(&resp.secret_string.unwrap())?))
     }
@@ -45,4 +50,14 @@ pub async fn get_vault_secret(mount: &str, path: &str) -> Result<Option<Secret>>
     Ok(Some(keypair))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[tokio::test]
+    async fn test_get_local_secret() {
+        let local_secret = get_secret(SecretProvider::Local, "tests/data/local_keys.json").await.unwrap().unwrap();
+        assert_eq!(&local_secret.public_key, "SOME_PUBLIC_KEY");
+        assert_eq!(&local_secret.private_key, "SOME_PRIVATE_KEY");
+    }
+}
