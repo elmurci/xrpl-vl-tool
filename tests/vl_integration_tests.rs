@@ -74,6 +74,7 @@ mod test {
         assert!(verified_vl.version == 2);
         assert!(verified_vl.blobs_v2.clone().unwrap().len() == 1);
         assert!(verified_vl.blob.is_none());
+        assert!(verified_vl.signature.is_none());
         for blob_v2 in verified_vl.decoded_blobs_v2.unwrap() {
             assert!(blob_v2.blob_verification.unwrap() == true);
             for validator in blob_v2.decoded_blob.unwrap().validators {
@@ -91,6 +92,7 @@ mod test {
         assert!(verified_vl.version == 2);
         assert!(verified_vl.blobs_v2.clone().unwrap().len() == 2);
         assert!(verified_vl.blob.is_none());
+        assert!(verified_vl.signature.is_none());
         for blob_v2 in verified_vl.decoded_blobs_v2.unwrap() {
             assert!(blob_v2.blob_verification.unwrap() == true);
             for validator in blob_v2.decoded_blob.unwrap().validators {
@@ -241,7 +243,5 @@ mod test {
         let vl = decode_vl_v2(&vl).unwrap();
         assert!(verify_vl(vl.clone()).is_ok());
     }
-
-    // Optional signatures (!!!)
 
 }
