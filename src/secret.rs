@@ -50,4 +50,14 @@ pub async fn get_vault_secret(mount: &str, path: &str) -> Result<Option<Secret>>
     Ok(Some(keypair))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[tokio::test]
+    async fn test_get_local_secret() {
+        let local_secret = get_secret(SecretProvider::Local, "tests/data/local_keys.json").await.unwrap().unwrap();
+        assert_eq!(&local_secret.public_key, "0245A17A4F4F48C66116293C33E5E3A7BF32500E02046E7CF178EA1208D418DDE2");
+        assert_eq!(&local_secret.private_key, "9FC034A51DA53E3786DE46BFA3AFBC1C16157E4CACD31C02738251A473DDD3B8");
+    }
+}

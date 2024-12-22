@@ -55,3 +55,32 @@ pub fn verify_signature(public_key_hex: &str, payload_bytes: &[u8], signature: &
         Ok(sig.verify(&msg, &public_key).is_ok())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::rngs::OsRng;
+    use ed25519_dalek::SigningKey;
+    use secp256k1::Secp256k1;
+
+    #[tokio::test]
+    async fn test_sign_and_verify_ed25519() {
+        let mut csprng = OsRng;
+        let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+        let message = "Hello, world";
+        let public_key_hex = format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
+        let private_key_hex = hex::encode(signing_key.to_bytes());
+        let signed_message = sign(&public_key_hex, &private_key_hex, message).unwrap();
+        assert!(verify_signature(&public_key_hex, message.as_bytes(), &signed_message).unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_sign_and_verify_secp256k1() {
+        let secp = Secp256k1::new();
+        let message = "Hello, world";
+        let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
+        let private_key_hex = hex::encode(private_key.secret_bytes());
+        let signed_message = sign(&public_key.to_string(), &private_key_hex, message).unwrap();
+        assert!(verify_signature(&public_key.to_string(), message.as_bytes(), &signed_message).unwrap());
+    }
+}
