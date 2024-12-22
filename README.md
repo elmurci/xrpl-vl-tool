@@ -8,7 +8,9 @@ This tool allows you to `load` and `sign` VL's and `encode` and `decode` manifes
 
 ### Versions supported
 
-The tool supports both version 1 and 2 of the VL format.
+The tool supports both version `1` and `2` of the VL format.
+
+Version 2 was released in `rippled 1.7.0` and it adds a future effective date so that nodes in the peer-to-peer network can switch to a new UNLs simultaneously. It also supports publishing multiple UNLs in one file, allowing future UNLs to be included alongside a current UNL.
 For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-Standards/tree/master/XLS-0045-prepublish-validator-lists).
 
 ### Load
