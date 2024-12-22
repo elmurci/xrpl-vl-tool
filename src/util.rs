@@ -1,22 +1,20 @@
-use crate::manifest::decode_manifest;
+use crate::crypto::verify_signature;
+use crate::manifest::serialize_manifest_data;
+use crate::structs::{DecodedManifest, DecodedVl, Validator};
 use crate::time::get_timestamp;
-use crate::{
-    enums::Version,
-    structs::{DecodedBlob, Unl},
-};
-use anyhow::Result;
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::enums::Version;
+use anyhow::{anyhow, Result};
 use color_eyre::owo_colors::OwoColorize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use url::Url;
 
-pub fn generate_unl_file(content: &str) -> Result<()> {
-    let mut file = File::create(format!("index.json.{}", get_timestamp()))?;
+pub fn generate_vl_file(content: &str, version: u8) -> Result<String> {
+    let file_name = format!("generated_vl_v{}-{}.json", version, get_timestamp());
+    let mut file = File::create(&file_name)?;
     file.write_all(content.as_bytes())?;
-    Ok(())
+    Ok(file_name)
 }
 
 pub fn sha512_first_half(message: &[u8]) -> Result<Vec<u8>> {
@@ -42,39 +40,14 @@ pub fn hex_to_base58(hex_string: &str) -> Result<String> {
     Ok(base58_encode(payload_with_checksum))
 }
 
-pub fn decode_unl(unl: Unl) -> Result<Unl> {
-    let mut decoded_unl: Unl = unl.clone();
-    let decoded = BASE64_STANDARD.decode(&unl.blob).unwrap();
-    let mut decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
-    for validator in decoded_blob.validators.iter_mut() {
-        let manifest = decode_manifest(&validator.manifest).expect("Could not decode manifest");
-        validator.decoded_manifest = Some(manifest.clone());
-    }
-    decoded_unl.decoded_manifest = Some(decode_manifest(&unl.manifest)?);
-    decoded_unl.decoded_blob = Some(decoded_blob);
-    Ok(decoded_unl)
-}
-
 pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
-    let contents = fs::read_to_string(file_path).unwrap_or_else(|_| format!("No such file: {}", file_path));
+    let contents = fs::read_to_string(file_path)?;
     let lines: Vec<String> = contents.split("\n").map(|s: &str| s.to_string()).collect();
     Ok(lines)
 }
 
-pub async fn get_unl(url_or_file: &str) -> Result<Unl> {
-    
-    let url = Url::parse(url_or_file);
-
-    let unl: Unl = if url.is_err() {
-        serde_json::from_str(&fs::read_to_string(url_or_file)?)?
-    } else {
-        reqwest::get(url_or_file).await?.json::<Unl>().await?
-    };
-    Ok(unl)
-}
-
-pub fn base58_to_hex(bae58_string: &str) -> String {
-    let decb58 = base58_decode(Version::NodePublic, bae58_string).expect("Invalid base58 string");
+pub fn base58_to_hex(bae58_string: &str, version: Version) -> String {
+    let decb58 = base58_decode(version, bae58_string).expect("Invalid base58 string");
     hex::encode(decb58)
 }
 
@@ -107,6 +80,16 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
     }
 }
 
+pub fn is_effective_date_already_present(vl: &DecodedVl, effective_date: i64) -> Result<bool> {
+    for blob_v2 in vl.decoded_blobs_v2.clone().expect("Could not get blobs_v2") {
+        if blob_v2.decoded_blob.expect("Could not get decoded blob v2").effective.expect("Could not get effective date") == effective_date {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+
 pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     if key.len() >= 64 {
         Ok(base58_decode(
@@ -118,6 +101,55 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     } else {
         Ok(key.as_bytes().to_vec())
     }
+}
+
+pub fn verify_manifest(decoded_manifest: DecodedManifest) -> Result<DecodedManifest> {
+    let mut manifest = decoded_manifest.clone();
+    let payload = serialize_manifest_data(&manifest)?;
+
+    let manifest_master_validation = verify_signature(
+        &hex::encode(
+            &base58_decode(Version::NodePublic, &decoded_manifest.master_public_key)?,
+        )
+        .to_uppercase(),
+        &payload,
+        &decoded_manifest.master_signature,
+    )?;
+
+    let manifest_signing_validation = verify_signature(
+        &hex::encode(
+            &base58_decode(Version::NodePublic, &decoded_manifest.signing_public_key)?,
+        )
+        .to_uppercase(),
+        &payload,
+        &decoded_manifest.signature,
+    )?;
+
+    if !manifest_master_validation || !manifest_signing_validation {
+        return Err(anyhow!("Could not verify manifest, either manifest_master_validation or manifest_signing_validation failed."));
+    }
+
+    manifest.verification = true;
+
+    Ok(manifest)
+}
+
+pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
+    for validator in validators.iter_mut() {
+        if let Some(validator_manifest) = &validator.decoded_manifest {
+            
+            let validator_validation = verify_manifest(validator_manifest.clone())?;
+            
+            println!(
+                "Validator: {} ({}) | Verification: {} | {}",
+                &validator.validation_public_key,
+                hex_to_base58(&validator.validation_public_key)?,
+                get_tick_or_cross(validator_validation.verification),
+                validator_manifest.clone().domain.unwrap_or("".to_string())
+            );
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
