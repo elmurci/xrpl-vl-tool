@@ -39,6 +39,12 @@ impl SecretProvider {
 }
 
 #[derive(Debug)]
+pub enum SecretType {
+    Ed25519,
+    Secp256k1,
+}
+
+#[derive(Debug)]
 pub enum Version {
     // None,
     NodePublic,

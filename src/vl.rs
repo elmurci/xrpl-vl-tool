@@ -2,11 +2,11 @@ use std::fs;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use anyhow::Result;
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{Duration, Utc};
 use url::Url;
 use anyhow::anyhow;
 
-use crate::{crypto::{sign, verify_signature}, enums::{SecretProvider, Version}, manifest::decode_manifest, secret::get_secret, structs::{BlobV2, DecodedBlob, DecodedVl, Validator, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest}};
+use crate::{crypto::{sign, verify_signature}, enums::Version, manifest::decode_manifest, structs::{BlobV2, DecodedBlob, DecodedVl, Secret, Validator, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest}};
 
 pub async fn get_vl(url_or_file: &str) -> Result<Vl> {
     
@@ -97,29 +97,17 @@ pub async fn sign_vl(
     manifests_file: String,
     sequence: u32,
     expiration_in_days: u16,
-    secret_provider: SecretProvider,
-    secret_name: String,
-    effective: Option<String>,
-    v2_vl_file: Option<String>,
+    secret: Secret,
+    effective: Option<i64>,
+    v2_vl: Option<Vl>,
 ) -> Result<Vl> {
     let decoded_publisher_manifest = decode_manifest(&manifest)?;
-    let secret = get_secret(secret_provider, &secret_name).await?;
-    if secret.is_none() {
-        return Err(anyhow!("No secret was found"));
-    }
 
     if expiration_in_days == 0 {
         return Err(anyhow!("Expiration has to be greater than 0"));
     }
 
-    let keypair = secret.unwrap();
-    
-    let mut vl = if v2_vl_file.is_some() {
-        get_vl(&v2_vl_file.clone().unwrap()).await?
-    } else {
-        Vl::default()
-    };
-    
+    let mut vl = v2_vl.clone().unwrap_or_default();    
     let manifests = get_manifests(&manifests_file)?;
     let mut validators: Vec<Validator> = vec![];
 
@@ -142,12 +130,12 @@ pub async fn sign_vl(
     ));
 
     let effective_ripple_timestamp = if version == 2 {
-        let effective_date_time = convert_to_ripple_time(Some(NaiveDateTime::parse_from_str(&effective.expect("Could not get the effective date"), "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp()));
+        let effective_date_time = convert_to_ripple_time(effective);
         if effective_date_time > expiration_ripple_timestamp {
             return Err(anyhow!("Effective date must be before expiration date"));
         } else if effective_date_time < now_ripple_timestamp {
             return Err(anyhow!("Effective date can't be in the past"));
-        } else if v2_vl_file.is_some() && v2_vl_file.is_some() && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)? {
+        } else if v2_vl.is_some() && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)? {
             return Err(anyhow!("Exact same Effective date already present in the VL"));
         }
         Some(effective_date_time)
@@ -165,11 +153,11 @@ pub async fn sign_vl(
     let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
     let vl_blob = BASE64_STANDARD.encode(decoded_blob_payload.clone());
     let signature = sign(
-        &keypair.public_key,
-        &keypair.private_key,
-        &decoded_blob_payload.clone(),
+        &secret.public_key,
+        &secret.private_key,
+        decoded_blob_payload.clone().as_bytes(),
     )?;
-    
+
     vl.public_key = base58_to_hex(&decoded_publisher_manifest.master_public_key, Version::NodePublic).to_uppercase();
     vl.manifest = manifest.clone();
 
@@ -181,7 +169,7 @@ pub async fn sign_vl(
         vl.signature = Some(signature.clone());
         vl.blob = Some(vl_blob);
     } else {
-        if v2_vl_file.is_none() {
+        if v2_vl.is_none() {
             vl.manifest = manifest;
             vl.blobs_v2 = Some(vec![]);
         }
