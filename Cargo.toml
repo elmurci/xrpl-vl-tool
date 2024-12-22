@@ -1,5 +1,5 @@
 [package]
-name = "xrpl-vl-tool"
+name = "xrpl_vl_tool"
 version = "0.0.5"
 edition = "2021"
 

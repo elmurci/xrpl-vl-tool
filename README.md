@@ -17,7 +17,7 @@ For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-
 
 The command allows for either a url or a file path:
 
-`./xrpl-vl-tool load {url_or_path}`
+`./xrpl_vl_tool load {url_or_path}`
 
 And loads the given VL performing some validations.
 
@@ -25,7 +25,7 @@ And loads the given VL performing some validations.
 
 *Example request:*
 
-`./xrpl-vl-tool load https://vl.xrplf.org` or `./xrpl-vl-tool load /dev/vl.json`
+`./xrpl_vl_tool load https://vl.xrplf.org` or `./xrpl_vl_tool load /dev/vl.json`
 
 *Example response:*
 
@@ -76,7 +76,7 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 
 Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
-`./xrpl-vl-tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(local, aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
+`./xrpl_vl_tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(local, aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
 
 #### AWS Secrets
 
@@ -115,7 +115,7 @@ For local secrets, specify the path to a file containing the public and private 
 
 *Example request:*
 
-`./xrpl-vl-tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== tests/data/manifests_list_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 tests/data/vl_v2_2.json`
+`./xrpl_vl_tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== tests/data/manifests_list_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 tests/data/vl_v2_2.json`
 
 *Example response:*
 
@@ -179,7 +179,7 @@ Example:
 Encodes a manifest, example:
 
 ```
-./xrpl-vl-tool encode-manifest 1 nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6 nHBYNPHW6LJGzHF8AynFg4TdVD9M9wo5YSf7ybgf8Gobu42GHxbd 109C8F7EA54617B24305D44AF548FADE9BDCCC10EC43C76E1A4BEF3C588817A6C95757244F7A1170B674D36FE2F0531EF2517A07DE1DF5424AEEBB64591BBD1D CB7A643EBF6386AC8FBC1ED3E0DCFC8FF32311A35AF6884C2F3B689F1000643A5C07ECD7F1056F43819488078F2C2285FDFA9329F8549127E86E8CCF3A2FDB09
+./xrpl_vl_tool encode-manifest 1 nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6 nHBYNPHW6LJGzHF8AynFg4TdVD9M9wo5YSf7ybgf8Gobu42GHxbd 109C8F7EA54617B24305D44AF548FADE9BDCCC10EC43C76E1A4BEF3C588817A6C95757244F7A1170B674D36FE2F0531EF2517A07DE1DF5424AEEBB64591BBD1D CB7A643EBF6386AC8FBC1ED3E0DCFC8FF32311A35AF6884C2F3B689F1000643A5C07ECD7F1056F43819488078F2C2285FDFA9329F8549127E86E8CCF3A2FDB09
 ```
 
 ### Decode (manifest)
@@ -187,7 +187,7 @@ Encodes a manifest, example:
 Decodes a manifest, example:
 
 ```
-./xrpl-vl-tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
+./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
 ```
 
 ### Tests

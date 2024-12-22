@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Loads and verifies a given Validation List. It accepts a file path or a url. Example: `./xrpl-vl-tool load {url_or_file_path}`
+    /// Loads and verifies a given Validation List. It accepts a file path or a url. Example: `./xrpl_vl_tool load {url_or_file_path}`
     Load { arg: Option<String> },
     /// Produces and signs a Validation List
     Sign { arg: Option<Vec<String>> },
