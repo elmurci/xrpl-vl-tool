@@ -1,6 +1,6 @@
 use crate::crypto::verify_signature;
 use crate::manifest::serialize_manifest_data;
-use crate::structs::{DecodedManifest, Validator};
+use crate::structs::{DecodedManifest, DecodedVl, Validator};
 use crate::time::get_timestamp;
 use crate::enums::Version;
 use anyhow::{anyhow, Result};
@@ -79,6 +79,16 @@ pub fn get_tick_or_cross(is_valid: bool) -> String {
         "x".red().to_string()
     }
 }
+
+pub fn is_effective_date_already_present(vl: &DecodedVl, effective_date: i64) -> Result<bool> {
+    for blob_v2 in vl.decoded_blobs_v2.clone().expect("Could not get blobs_v2") {
+        if blob_v2.decoded_blob.expect("Could not get decoded blob v2").effective.expect("Could not get effective date") == effective_date {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 
 pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     if key.len() >= 64 {
