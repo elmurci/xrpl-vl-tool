@@ -51,7 +51,7 @@ pub fn verify_signature(public_key_hex: &str, payload_bytes: &[u8], signature: &
         let public_key = Secp256k1PublicKey::from_slice(&public_key_bytes).expect("Invalid Secp256k1 Public Key");
         let message_hash = sha512_first_half(payload_bytes)?;
         let msg = Message::from_digest_slice(message_hash.as_ref()).unwrap();
-        let sig = Secp256k1Signature::from_str(&signature).expect("Invalid Secp256k1 Signature");
+        let sig = Secp256k1Signature::from_str(signature).expect("Invalid Secp256k1 Signature");
         Ok(sig.verify(&msg, &public_key).is_ok())
     }
 }

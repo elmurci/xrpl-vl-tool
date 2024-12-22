@@ -6,7 +6,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use url::Url;
 use anyhow::anyhow;
 
-use crate::{crypto::{sign, verify_signature}, enums::{self, SecretProvider, Version}, manifest::{decode_manifest, serialize_manifest_data}, secret::get_secret, structs::{BlobV2, DecodedBlob, DecodedVl, Validator, Vl}, time::convert_to_ripple_time, util::{base58_decode, base58_to_hex, get_manifests, verify_manifest}};
+use crate::{crypto::{sign, verify_signature}, enums::{SecretProvider, Version}, manifest::decode_manifest, secret::get_secret, structs::{BlobV2, DecodedBlob, DecodedVl, Validator, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest}};
 
 pub async fn get_vl(url_or_file: &str) -> Result<Vl> {
     
@@ -41,20 +41,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
     
     let public_key = base58_to_hex(&vl.manifest.signing_public_key.clone(), Version::NodePublic).to_uppercase();
     // Manifest Verification
-    let manifest_signin_key = hex::encode(
-        base58_decode(
-            enums::Version::NodePublic,
-            &vl.manifest.signing_public_key,
-        )?,
-    )
-    .to_uppercase();
-
-    let manifest_verification = verify_signature(
-        &manifest_signin_key,
-        &serialize_manifest_data(&vl.manifest)?,
-        &vl.manifest.signature,
-    )?;
-    
+    let manifest_verification = verify_manifest(vl.manifest.clone()).is_ok();
     vl.manifest.verification =  manifest_verification;
 
     // With version 1 there is only one blob
@@ -78,6 +65,11 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         let decoded_blobs_v2 = vl.decoded_blobs_v2.as_mut().expect("Could not get decoded blobs v2");
         for (index, blob_v2) in decoded_blobs_v2.iter_mut().enumerate() {
             let mut decoded_blob = blob_v2.clone().decoded_blob.expect("Could not get decoded blob");
+            // If the manifest is not present in a blobs-v2 array entry, 
+            // then the top-level manifest will be used when checking the signature.
+            if blob_v2.manifest.is_some() {
+                verify_manifest(vl.manifest.clone())?;
+            }
             // TODO: move to a function
             for validator in decoded_blob.validators.iter_mut() {
                 let verified_validator = verify_manifest(validator.decoded_manifest.clone().expect("Could not get decoded manifest"))?;
@@ -117,6 +109,10 @@ pub async fn sign_vl(
         return Err(anyhow!("No secret was found"));
     }
 
+    if expiration_in_days == 0 {
+        return Err(anyhow!("Expiration has to be greater than 0"));
+    }
+
     let keypair = secret.unwrap();
     
     let mut vl = if v2_vl_file.is_some() {
@@ -139,18 +135,23 @@ pub async fn sign_vl(
         validators.push(validator);
     }
 
+    let now_ripple_timestamp =  convert_to_ripple_time(Some(
+        (Utc::now()).timestamp(),
+    ));
     let expiration_ripple_timestamp =  convert_to_ripple_time(Some(
         (Utc::now() + Duration::days(expiration_in_days as i64)).timestamp(),
     ));
 
     let effective_ripple_timestamp = if version == 2 {
-        let calculated = convert_to_ripple_time(Some(NaiveDateTime::parse_from_str(&effective.expect("Could not get the effective date"), "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp()));
-        if expiration_ripple_timestamp > calculated {
-            Some(calculated)
-        } else {
+        let effective_date_time = convert_to_ripple_time(Some(NaiveDateTime::parse_from_str(&effective.expect("Could not get the effective date"), "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp()));
+        if effective_date_time > expiration_ripple_timestamp {
             return Err(anyhow!("Effective date must be before expiration date"));
+        } else if effective_date_time < now_ripple_timestamp {
+            return Err(anyhow!("Effective date can't be in the past"));
+        } else if v2_vl_file.is_some() && v2_vl_file.is_some() && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)? {
+            return Err(anyhow!("Exact same Effective date already present in the VL"));
         }
-        // TODO: can't be in the past or in the same time as another unl in the array
+        Some(effective_date_time)
     } else {
         None
     };
