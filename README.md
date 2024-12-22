@@ -150,7 +150,7 @@ For local secrets, specify the path to a file containing the public and private 
 
 ### Manifest format
 
-The `manifest` is a data structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-vl-tool/blob/29f30a50a36c2bbcecd642b6f99217dd656e78bc/src/util.rs#L19) and contain the followig fields:
+The `manifest` is a data structure that defines a Validator. Manifest are [serialized](https://github.com/elmurci/xrpl-vl-tool/blob/aa50bd0b2fd0a50360a009e46b36a9815e6c2362/src/manifest.rs#L175) and contain the followig fields:
 
 - `sequence`: Manifest sequence number.
 - `master_public_key`: The master public key (base58 encoded)
