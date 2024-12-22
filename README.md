@@ -31,7 +31,7 @@ And loads the given VL performing some validations.
 There are 1 UNL's in this Validators List | Version 2 | Manifest Signature: ✓
 
 
-1) There are 35 validators in this VL. Sequence is: 81 | Blob Signature: x | Effective from: 2024-09-05 23:56:00 | Expires: 2025-12-04 22:53:42 
+There are 35 validators in this VL. Sequence is: 80 | Blob Signature: x | Manifest Signature: ✓ | Expires: 2025-10-31 00:00:00 | Version: 1 
 
 Validator: ED13AAFCB6A87BCB5D093C2EF37F04431C291126D674293305152D9776C6ABA4D6 (nHBWa56Vr7csoFcCnEPzCCKVvnDQw3L28mATgHYQMGtbEfUjuYyB) | Master: ✓, Signing: ✓ | xrp.vet
 Validator: ED4246AA3AE9D29863944800CCA91829E4447498A20CD9C3973A6B59346C75AB95 (nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec) | Master: ✓, Signing: ✓ |  
