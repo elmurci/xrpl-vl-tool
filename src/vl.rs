@@ -55,10 +55,9 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         vl.decoded_blob = Some(decoded_blob);
         let verify_blob = verify_signature(
             &public_key,
-            vl.blob.clone().expect("Could not get blob from v1 vl").as_bytes(),
+            &BASE64_STANDARD.decode(vl.blob.clone().expect("Could not get blob from v1 vl"))?,
             &vl.signature.clone().expect("Could not get signature from v1 vl"),
         )?;
-        
         vl.blob_verification = Some(verify_blob);
     } else {
         // With version 2, there might be multiple blobs
@@ -70,7 +69,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
             if blob_v2.manifest.is_some() {
                 verify_manifest(vl.manifest.clone())?;
             }
-            // TODO: move to a function
+            // TODO: move to a function?
             for validator in decoded_blob.validators.iter_mut() {
                 let verified_validator = verify_manifest(validator.decoded_manifest.clone().expect("Could not get decoded manifest"))?;
                 validator.decoded_manifest = Some(verified_validator);
@@ -78,7 +77,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
             let blobs_v2 = &vl.blobs_v2.clone().expect("Could not get blobs v2 from vl")[index];
             let verify_blob = verify_signature(
                 &public_key,
-                blobs_v2.blob.clone().expect("Could not get blob from blobs_v2").as_bytes(),
+                &BASE64_STANDARD.decode(blobs_v2.blob.clone().expect("Could not get blob from blobs_v2"))?,
                 &blobs_v2.signature.clone()
             )?;
             blob_v2.blob_verification = Some(verify_blob);
@@ -168,7 +167,7 @@ pub async fn sign_vl(
     let signature = sign(
         &keypair.public_key,
         &keypair.private_key,
-        &vl_blob,
+        &decoded_blob_payload.clone(),
     )?;
     
     vl.public_key = base58_to_hex(&decoded_publisher_manifest.master_public_key, Version::NodePublic).to_uppercase();
