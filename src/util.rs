@@ -46,8 +46,8 @@ pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
     Ok(lines)
 }
 
-pub fn base58_to_hex(bae58_string: &str, version: Version) -> String {
-    let decb58 = base58_decode(version, bae58_string).expect("Invalid base58 string");
+pub fn base58_to_hex(base58_string: &str, version: Version) -> String {
+    let decb58 = base58_decode(version, base58_string).expect("Invalid base58 string");
     hex::encode(decb58)
 }
 
