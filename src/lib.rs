@@ -6,3 +6,4 @@ pub mod manifest;
 pub mod structs;
 pub mod time;
 pub mod util;
+pub mod errors;

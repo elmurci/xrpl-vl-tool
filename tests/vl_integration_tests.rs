@@ -192,7 +192,48 @@ mod test {
         assert!(verified_vl.manifest.verification == true);
     }
 
-    // // VL wrong format
+    #[tokio::test]
+    async fn should_ignore_empty_lines_and_load_v1_valid_generated_vl() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            1,
+            test_data!("manifests_list_with_empty_lines.txt").to_string(),
+            91,
+            365,
+            None,
+            None,
+            SecretType::Secp256k1,
+            Some(0)
+        ).await.unwrap();
+        // Decode
+        let vl = decode_vl_v1(&signed_vl).unwrap();
+        // Verify
+        let verified_vl = verify_vl(vl.clone()).unwrap();
+        assert!(verified_vl.version == 1);
+        assert!(verified_vl.blobs_v2.is_none());
+        for validator in verified_vl.decoded_blob.clone().unwrap().validators {
+            assert!(validator.decoded_manifest.unwrap().verification == true);
+        }
+        assert!(verified_vl.manifest.verification == true);
+    }
+
+    #[tokio::test]
+    async fn should_error_if_wrong_manifests_in_file() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            1,
+            test_data!("manifests_list_with_errors.txt").to_string(),
+            91,
+            365,
+            None,
+            None,
+            SecretType::Secp256k1,
+            Some(0)
+        ).await;
+        assert!(signed_vl.is_err() == true);
+    }
+
+    // VL wrong format
 
     #[tokio::test]
     async fn should_error_v1_invalid_format() {

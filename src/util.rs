@@ -42,7 +42,11 @@ pub fn hex_to_base58(hex_string: &str) -> Result<String> {
 
 pub fn get_manifests(file_path: &str) -> Result<Vec<String>> {
     let contents = fs::read_to_string(file_path)?;
-    let lines: Vec<String> = contents.split("\n").map(|s: &str| s.to_string()).collect();
+    let lines: Vec<String> = contents
+        .lines()
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .collect();
     Ok(lines)
 }
 
