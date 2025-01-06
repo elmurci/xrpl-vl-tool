@@ -190,6 +190,18 @@ Decodes a manifest, example:
 ./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
 ```
 
-### Tests
+### Run locally
+
+#### Tests
 
 `cargo test`
+
+#### Build
+
+`cargo build`
+
+#### Run
+
+Example:
+
+`cargo run decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==`
