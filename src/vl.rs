@@ -1,12 +1,11 @@
 use std::fs;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use chrono::{Duration, Utc};
 use url::Url;
-use anyhow::anyhow;
 
-use crate::{crypto::{sign, verify_signature}, enums::Version, manifest::decode_manifest, structs::{BlobV2, DecodedBlob, DecodedVl, Secret, Validator, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest}};
+use crate::{crypto::{sign, verify_signature}, enums::Version, errors::VlValidationError, manifest::decode_manifest, structs::{BlobV2, DecodedBlob, DecodedVl, Secret, Validator, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest}};
 
 pub async fn get_vl(url_or_file: &str) -> Result<Vl> {
     
@@ -107,6 +106,24 @@ pub async fn sign_vl(
         return Err(anyhow!("Expiration has to be greater than 0"));
     }
 
+    if version == 2 && v2_vl.is_some() {
+        let v = v2_vl.clone().unwrap();
+        if !v.blobs_v2.clone().expect("Could not get blobs v2").is_empty() {
+            let blobs = v.blobs_v2.clone().ok_or(anyhow!("Could not get blobs_v2"))?;
+            let mut sequence_numbers: Vec<u32> = Vec::with_capacity(blobs.len());
+            for blob_v2 in blobs.iter() {
+                let decoded = BASE64_STANDARD.decode(blob_v2.blob.clone().unwrap())?;
+                let decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
+                sequence_numbers.push(decoded_blob.sequence);
+            }
+            if !sequence_numbers.iter().all(|&n| sequence > n) {
+                return Err(anyhow!(VlValidationError::InvalidSequence));
+            }
+        } else {
+            return Err(anyhow!(VlValidationError::MalformedVl));
+        }
+    }
+
     let mut vl = v2_vl.clone().unwrap_or_default();    
     let manifests = get_manifests(&manifests_file)?;
     let mut validators: Vec<Validator> = vec![];
@@ -132,11 +149,11 @@ pub async fn sign_vl(
     let effective_ripple_timestamp = if version == 2 {
         let effective_date_time = convert_to_ripple_time(effective);
         if effective_date_time > expiration_ripple_timestamp {
-            return Err(anyhow!("Effective date must be before expiration date"));
+            return Err(anyhow!(VlValidationError::EffectiveDateBeforeExpiration));
         } else if effective_date_time < now_ripple_timestamp {
-            return Err(anyhow!("Effective date can't be in the past"));
+            return Err(anyhow!(VlValidationError::PastEffectiveDate));
         } else if v2_vl.is_some() && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)? {
-            return Err(anyhow!("Exact same Effective date already present in the VL"));
+            return Err(anyhow!(VlValidationError::EffectiveDateAlreadyPresent));
         }
         Some(effective_date_time)
     } else {
