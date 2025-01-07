@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
 
             let vl = load_vl(url_or_file).await?;
             let verified_vl = verify_vl(vl)?;
-  
+
             if verified_vl.version == 1 {
                 // UNL Summary
                 let decoded_blob = verified_vl.decoded_blob.clone().unwrap();
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
                 // Validators
                 let _ = print_validators_summary(decoded_blob.validators);
             } else {
-                let decoded_blobs_v2 = verified_vl.blobs_v2.clone().expect("Could not get decoded blobs v2");
+                let decoded_blobs_v2 = verified_vl.decoded_blobs_v2.clone().expect("Could not get decoded blobs v2");
                 // Summary
                 println!("\nThere are {} UNL's in this Validators List | Version 2 | Manifest Signature: {}\n", decoded_blobs_v2.len(), get_tick_or_cross(verified_vl.manifest.verification));
                 for (index, blob_v2) in decoded_blobs_v2.iter().enumerate() {
