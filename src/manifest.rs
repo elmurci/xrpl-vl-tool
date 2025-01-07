@@ -67,9 +67,7 @@ pub fn encode_manifest(
 
 pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
     let manifest_bytes = BASE64_STANDARD.decode(manifest_blob)
-    .map_err(|err| {
-        DecodeManifestError::Base64Error(format!("Could not decode Base64 Manifest: {}, [{}]", err, manifest_blob))
-    })?;
+    .map_err(|_| DecodeManifestError::Base64Error)?;
 
     let mut remaining_bytes = &manifest_bytes[..];
 
@@ -77,9 +75,7 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
 
     while !remaining_bytes.is_empty() {
         let (manifest_field_type, data, rest) = match decode_next_field(remaining_bytes)
-        .map_err(|err| {
-            DecodeManifestError::NextFieldError(format!("decode_next_field failed: {}", err))
-        })? {
+        .map_err(|_| anyhow::Error::from(DecodeManifestError::NextFieldError))? {
             Some(value) => value,
             None => break,
         };
@@ -90,37 +86,29 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
         } else {
             u16::from_be_bytes(
                 manifest_field_type.try_into().map_err(|_| {
-                    DecodeManifestError::InvalidFieldLength(
-                        "Invalid `manifest_field_type` length; expected 1 or 2 bytes".to_string(),
-                    )
+                    anyhow::Error::from(DecodeManifestError::InvalidManifestType)
                 })?
             )
         };
 
         let field_type = ManifestField::from_value(&manifest_field_type)
-        .map_err(|err| {
-            DecodeManifestError::Other(format!("Couldn't parse ManifestField: {}", err))
+        .map_err(|_err| {
+            anyhow::Error::new(DecodeManifestError::InvalidManifestValue)
         })?;
         
         match field_type {
             ManifestField::Sequence => {
                 result.sequence = u32::from_be_bytes(
                     data.try_into().map_err(|_| {
-                        DecodeManifestError::InvalidFieldLength(
-                            "Invalid sequence length; expected 4 bytes".to_string(),
-                        )
+                        anyhow::Error::from(DecodeManifestError::InvalidFieldLength)
                     })?
                 );
             }
             ManifestField::MasterPublicKey => {
-                result.master_public_key = bytes_to_base58(&data).map_err(|err| {
-                    DecodeManifestError::Other(format!("Error converting to base58: {}", err))
-                })?;
+                result.master_public_key = bytes_to_base58(&data)?;
             }
             ManifestField::SigningPublicKey => {
-                result.signing_public_key = bytes_to_base58(&data).map_err(|err| {
-                    DecodeManifestError::Other(format!("Error converting to base58: {}", err))
-                })?;
+                result.signing_public_key = bytes_to_base58(&data)?;
             }
             ManifestField::Signature => {
                 result.signature = hex::encode(data);
@@ -129,14 +117,8 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
                 result.master_signature = hex::encode(data);
             }
             ManifestField::Domain => {
-                // Instead of `.expect(...)` we return a custom error if UTF-8 fails
                 result.domain = Some(
-                    String::from_utf8(data).map_err(|err| {
-                        DecodeManifestError::Utf8Error(format!(
-                            "Invalid UTF-8 data in Domain field: {}",
-                            err
-                        ))
-                    })?
+                    String::from_utf8(data)?
                 );
             }
         }

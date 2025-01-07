@@ -61,42 +61,61 @@ mod test {
         Some(NaiveDateTime::parse_from_str(&date_time_string, "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp())
     }
 
+    fn get_valid_effective_timestamp(add: i64) -> i64 {
+        (Utc::now()).timestamp() + add
+    }
+
     fn get_ripple_now() -> i64 {
         convert_to_ripple_time(Some(
             (Utc::now()).timestamp(),
         ))
     }
 
-    async fn test_sign_vl(version: u8, manifests_list: String, sequence: u32, expiration: u16, effective: Option<i64>, v2_vl: Option<Vl>, secret_type: SecretType, number_of_blobs: Option<u8>) -> Result<Vl> {
+    async fn test_sign_vl(
+        version: u8,
+        manifests_list: String,
+        sequence: u32,
+        expiration: u16,
+        effective: Option<i64>,
+        v2_vl: Option<Vl>,
+        secret_type: SecretType,
+        number_of_blobs: Option<u8>) -> Result<Vl> 
+    {
         let master_secret = generate_secret(&secret_type);
         let signing_secret = generate_secret(&secret_type);
-        let mut vl = sign_vl(
-            version,
-            generate_manifest(&master_secret, &signing_secret, 1, None),
-            manifests_list.clone(),
-            sequence,
-            expiration,
-            signing_secret.clone(),
-            effective.clone(),
-            v2_vl,
-        ).await?;
         if version == 2 && number_of_blobs.is_some() {
             let sig_secret = &signing_secret.clone();
             let effective_date = effective.clone().unwrap() + 1_000_000;
-            for index in 0..number_of_blobs.unwrap() - 1 {
+            let mut vl = v2_vl.unwrap_or_default();
+            for index in 0..number_of_blobs.unwrap() {
                 vl = sign_vl(
                     version,
                     generate_manifest(&master_secret, sig_secret, (index + 1) as u32, None),
                     manifests_list.clone(),
-                    sequence,
+                    sequence + (index as u32),
                     expiration,
                     sig_secret.clone(),
-                    Some(effective_date),
-                    Some(vl),
-                ).await.unwrap();
+                    Some(effective_date + (index as i64)),
+                    if vl.blobs_v2.is_none() {
+                        None
+                    } else {
+                        Some(vl)
+                    },
+                ).await?;
             }
+            Ok(vl)
+        } else {
+            sign_vl(
+                version,
+                generate_manifest(&master_secret, &signing_secret, 1, None),
+                manifests_list.clone(),
+                sequence,
+                expiration,
+                signing_secret.clone(),
+                effective.clone(),
+                v2_vl,
+            ).await
         }
-        Ok(vl)
     }
 
     // VL's that should verify (v1 and v2)
@@ -342,10 +361,10 @@ mod test {
             test_data!("manifests_list_1.txt").to_string(),
             91,
             365,
-            get_timestamp_from_string("2025-09-05 23:56".to_owned()),
+            Some(get_valid_effective_timestamp(1000)),
             None,
             SecretType::Secp256k1,
-            None
+            None,
         ).await.unwrap();
         let vl = decode_vl_v2(&signed_vl).unwrap();
         assert!(base58_to_hex(&vl.manifest.master_public_key, Version::NodePublic).to_uppercase() == vl.public_key);
@@ -358,7 +377,7 @@ mod test {
             2, test_data!("manifests_list_1.txt").to_string(),
             91,
             365,
-            get_timestamp_from_string("2025-09-05 23:56".to_owned()),
+            Some(get_valid_effective_timestamp(2000)),
             None,
             SecretType::Ed25519,
             None
@@ -368,17 +387,80 @@ mod test {
     }
 
     #[tokio::test]
-    async fn v2_effective_date_cannot_be_repeated() {
-        assert!(test_sign_vl(
+    async fn v2_effective_date_cannot_be_repeated() { 
+        let signed_vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            365,
+            Some(get_valid_effective_timestamp(2000)),
+            None,
+            SecretType::Secp256k1,
+            None
+        ).await.unwrap();
+        let vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            92,
+            365,
+            Some(get_valid_effective_timestamp(2000)),
+            Some(signed_vl),
+            SecretType::Ed25519,
+            None
+        ).await;
+        assert!(vl.err().unwrap().to_string() == "Exact same Effective date already present in the VL");
+    }
+
+    // Sequence numbers
+
+    #[tokio::test]
+    async fn v2_sequence_number_should_not_be_equal_to_current() {
+        let signed_vl = test_sign_vl(
             2,
             test_data!("manifests_list_1.txt").to_string(),
             91,
             365,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
-            Some(get_vl(&test_data!("vl_v2_1.json").to_owned()).await.unwrap()),
-            SecretType::Ed25519,
+            None,
+            SecretType::Secp256k1,
             None
-        ).await.is_err());
+        ).await.unwrap();
+        let vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            1,
+            get_timestamp_from_string("2024-01-05 23:56".to_owned()),
+            Some(signed_vl),
+            SecretType::Secp256k1,
+            None
+        ).await;
+        assert!(vl.err().unwrap().to_string() == "Sequence number must be greater than the current one");
+    }
+
+    #[tokio::test]
+    async fn v2_sequence_number_should_be_greater_than_current() {
+        let signed_vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            365,
+            get_timestamp_from_string("2025-09-05 23:56".to_owned()),
+            None,
+            SecretType::Secp256k1,
+            None
+        ).await.unwrap();
+        let vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            89,
+            1,
+            get_timestamp_from_string("2024-01-05 23:56".to_owned()),
+            Some(signed_vl),
+            SecretType::Secp256k1,
+            None
+        ).await;
+        assert!(vl.err().unwrap().to_string() == "Sequence number must be greater than the current one");
     }
 
     // Expiration dates
