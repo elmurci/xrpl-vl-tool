@@ -1,35 +1,63 @@
-
-
-macro_rules! test_data {($fname:expr) => (
-    concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/", $fname) // assumes Linux ('/')!
-)}
-
+macro_rules! test_data {
+    ($fname:expr) => {
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/", $fname) // assumes Linux ('/')!
+    };
+}
 
 mod test {
     use anyhow::Result;
     use chrono::{NaiveDateTime, Utc};
-    use rand::rngs::OsRng;
     use ed25519_dalek::SigningKey;
+    use rand::rngs::OsRng;
     use secp256k1::Secp256k1;
-    use xrpl_vl_tool::{crypto::sign, enums::{SecretType, Version}, manifest::{encode_manifest, serialize_manifest_data}, structs::{DecodedManifest, Secret, Vl}, time::convert_to_ripple_time, util::{base58_to_hex, hex_to_base58}, vl::{decode_vl_v1, decode_vl_v2, get_vl, load_vl, sign_vl, verify_vl}};
+    use xrpl_vl_tool::{
+        crypto::sign,
+        manifest::{encode_manifest, serialize_manifest_data, DecodedManifest},
+        secret::{Secret, SecretType},
+        time::convert_to_ripple_time,
+        util::{base58_to_hex, hex_to_base58, Version},
+        vl::{decode_vl_v1, decode_vl_v2, get_vl, load_vl, sign_vl, verify_vl, Vl},
+    };
 
-    fn generate_manifest(master_secret: &Secret, signing_secret: &Secret, sequence: u32, domain: Option<String>) -> String {
+    fn generate_manifest(
+        master_secret: &Secret,
+        signing_secret: &Secret,
+        sequence: u32,
+        domain: Option<String>,
+    ) -> String {
         let master_public_key = hex_to_base58(&master_secret.public_key).unwrap();
         let signing_public_key = hex_to_base58(&signing_secret.public_key).unwrap();
-        let serialized_manifest = serialize_manifest_data(
-            &DecodedManifest {
-                master_public_key: master_secret.public_key.clone(),
-                signing_public_key: signing_secret.public_key.clone(),
-                sequence,
-                domain: domain.clone(),
-                signature: "".to_string(),
-                master_signature: "".to_string(),
-                verification: false,
-            },
-        ).unwrap();
-        let master_signature = sign(&master_public_key, &master_secret.private_key, &serialized_manifest).unwrap();
-        let signature = sign(&signing_public_key, &signing_secret.private_key, &serialized_manifest).unwrap();
-        encode_manifest(sequence, master_public_key.to_owned(), signing_public_key.to_owned(), signature, master_signature, domain).unwrap()
+        let serialized_manifest = serialize_manifest_data(&DecodedManifest {
+            master_public_key: master_secret.public_key.clone(),
+            signing_public_key: signing_secret.public_key.clone(),
+            sequence,
+            domain: domain.clone(),
+            signature: "".to_string(),
+            master_signature: "".to_string(),
+            verification: false,
+        })
+        .unwrap();
+        let master_signature = sign(
+            &master_public_key,
+            &master_secret.private_key,
+            &serialized_manifest,
+        )
+        .unwrap();
+        let signature = sign(
+            &signing_public_key,
+            &signing_secret.private_key,
+            &serialized_manifest,
+        )
+        .unwrap();
+        encode_manifest(
+            sequence,
+            master_public_key.to_owned(),
+            signing_public_key.to_owned(),
+            signature,
+            master_signature,
+            domain,
+        )
+        .unwrap()
     }
 
     fn generate_secret(secret_type: &SecretType) -> Secret {
@@ -37,7 +65,8 @@ mod test {
             SecretType::Ed25519 => {
                 let mut csprng = OsRng;
                 let signing_key: SigningKey = SigningKey::generate(&mut csprng);
-                let public_key_hex = format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
+                let public_key_hex =
+                    format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
                 let private_key_hex = hex::encode(signing_key.to_bytes());
 
                 Secret {
@@ -58,7 +87,12 @@ mod test {
     }
 
     fn get_timestamp_from_string(date_time_string: String) -> Option<i64> {
-        Some(NaiveDateTime::parse_from_str(&date_time_string, "%Y-%m-%d %H:%M").expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M").and_utc().timestamp())
+        Some(
+            NaiveDateTime::parse_from_str(&date_time_string, "%Y-%m-%d %H:%M")
+                .expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M")
+                .and_utc()
+                .timestamp(),
+        )
     }
 
     fn get_valid_effective_timestamp(add: i64) -> i64 {
@@ -66,9 +100,7 @@ mod test {
     }
 
     fn get_ripple_now() -> i64 {
-        convert_to_ripple_time(Some(
-            (Utc::now()).timestamp(),
-        ))
+        convert_to_ripple_time(Some((Utc::now()).timestamp())).unwrap()
     }
 
     async fn test_sign_vl(
@@ -79,8 +111,8 @@ mod test {
         effective: Option<i64>,
         v2_vl: Option<Vl>,
         secret_type: SecretType,
-        number_of_blobs: Option<u8>) -> Result<Vl> 
-    {
+        number_of_blobs: Option<u8>,
+    ) -> Result<Vl> {
         let master_secret = generate_secret(&secret_type);
         let signing_secret = generate_secret(&secret_type);
         if version == 2 && number_of_blobs.is_some() {
@@ -101,7 +133,8 @@ mod test {
                     } else {
                         Some(vl)
                     },
-                ).await?;
+                )
+                .await?;
             }
             Ok(vl)
         } else {
@@ -114,7 +147,8 @@ mod test {
                 signing_secret.clone(),
                 effective.clone(),
                 v2_vl,
-            ).await
+            )
+            .await
         }
     }
 
@@ -143,8 +177,10 @@ mod test {
             None,
             None,
             SecretType::Secp256k1,
-            Some(0)
-        ).await.unwrap();
+            Some(0),
+        )
+        .await
+        .unwrap();
         // Decode
         let vl = decode_vl_v1(&signed_vl).unwrap();
         // Verify
@@ -184,8 +220,10 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = decode_vl_v2(&signed_vl).unwrap();
         let verified_vl = verify_vl(vl.clone()).unwrap();
         assert!(verified_vl.version == 2);
@@ -198,7 +236,7 @@ mod test {
                 assert!(validator.decoded_manifest.unwrap().verification == true);
             }
         }
-         assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification == true);
     }
 
     #[tokio::test]
@@ -211,8 +249,10 @@ mod test {
             get_timestamp_from_string("2026-09-05 22:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            Some(2)
-        ).await.unwrap();
+            Some(2),
+        )
+        .await
+        .unwrap();
         let vl = decode_vl_v2(&signed_vl).unwrap();
         let verified_vl = verify_vl(vl.clone()).unwrap();
         assert!(verified_vl.version == 2);
@@ -239,8 +279,10 @@ mod test {
             None,
             None,
             SecretType::Secp256k1,
-            Some(0)
-        ).await.unwrap();
+            Some(0),
+        )
+        .await
+        .unwrap();
         // Decode
         let vl = decode_vl_v1(&signed_vl).unwrap();
         // Verify
@@ -264,8 +306,9 @@ mod test {
             None,
             None,
             SecretType::Secp256k1,
-            Some(0)
-        ).await;
+            Some(0),
+        )
+        .await;
         assert!(signed_vl.is_err() == true);
     }
 
@@ -273,22 +316,42 @@ mod test {
 
     #[tokio::test]
     async fn should_error_v1_invalid_format() {
-        assert!(load_vl(test_data!("vl_v1_wrong_format.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v1_wrong_format.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_format() {
-        assert!(load_vl(test_data!("vl_v2_wrong_format.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v2_wrong_format.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
     async fn should_error_v1_invalid_master_manifest() {
-        assert!(load_vl(test_data!("vl_v1_wrong_manifest_1.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v1_wrong_manifest_1.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
     async fn should_error_v1_invalid_validator_manifest() {
-        assert!(load_vl(test_data!("vl_v1_wrong_manifest_2.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v1_wrong_manifest_2.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
@@ -298,12 +361,22 @@ mod test {
 
     #[tokio::test]
     async fn should_error_v2_invalid_master_manifest() {
-        assert!(load_vl(test_data!("vl_v2_wrong_manifest_1.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v2_wrong_manifest_1.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_validator_manifest() {
-        assert!(load_vl(test_data!("vl_v2_wrong_manifest_2.json")).await.is_err() == true);
+        assert!(
+            load_vl(test_data!("vl_v2_wrong_manifest_2.json"))
+                .await
+                .is_err()
+                == true
+        );
     }
 
     #[tokio::test]
@@ -315,13 +388,17 @@ mod test {
 
     #[tokio::test]
     async fn should_not_verify_master() {
-        let vl = load_vl(test_data!("vl_v1_wrong_master_signature.json")).await.unwrap();
+        let vl = load_vl(test_data!("vl_v1_wrong_master_signature.json"))
+            .await
+            .unwrap();
         assert!(verify_vl(vl.clone()).is_err());
     }
 
     #[tokio::test]
     async fn should_not_verify_signing() {
-        let vl = load_vl(test_data!("vl_v1_wrong_signing_signature.json")).await.unwrap();
+        let vl = load_vl(test_data!("vl_v1_wrong_signing_signature.json"))
+            .await
+            .unwrap();
         let verified_vl = verify_vl(vl.clone()).unwrap();
         assert!(verified_vl.manifest.verification == false);
     }
@@ -332,8 +409,14 @@ mod test {
         let vl = load_vl(test_data!("vl.ripple.com.json")).await.unwrap();
         let verified_vl = verify_vl(vl.clone()).unwrap();
         assert!(verified_vl.manifest.sequence == 1);
-        assert!(verified_vl.manifest.master_public_key == "nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4");
-        assert!(verified_vl.manifest.signing_public_key == "nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU");
+        assert!(
+            verified_vl.manifest.master_public_key
+                == "nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4"
+        );
+        assert!(
+            verified_vl.manifest.signing_public_key
+                == "nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU"
+        );
         assert!(verified_vl.manifest.domain.is_none());
     }
 
@@ -349,8 +432,9 @@ mod test {
             verified_vl.manifest.signing_public_key.clone(),
             verified_vl.manifest.signature.clone(),
             verified_vl.manifest.master_signature.clone(),
-            verified_vl.manifest.domain.clone()
-        ).unwrap();
+            verified_vl.manifest.domain.clone(),
+        )
+        .unwrap();
         assert!(vl_json.manifest == encoded_manifest);
     }
 
@@ -365,10 +449,17 @@ mod test {
             None,
             None,
             SecretType::Ed25519,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = decode_vl_v1(&signed_vl).unwrap();
-        assert!(base58_to_hex(&vl.manifest.master_public_key, Version::NodePublic).to_uppercase() == vl.public_key);
+        assert!(
+            base58_to_hex(&vl.manifest.master_public_key, Version::NodePublic)
+                .unwrap()
+                .to_uppercase()
+                == vl.public_key
+        );
     }
 
     #[tokio::test]
@@ -382,29 +473,47 @@ mod test {
             None,
             SecretType::Secp256k1,
             None,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         let vl = decode_vl_v2(&signed_vl).unwrap();
-        assert!(base58_to_hex(&vl.manifest.master_public_key, Version::NodePublic).to_uppercase() == vl.public_key);
+        assert!(
+            base58_to_hex(&vl.manifest.master_public_key, Version::NodePublic)
+                .unwrap()
+                .to_uppercase()
+                == vl.public_key
+        );
     }
 
     // Effective dates
     #[tokio::test]
     async fn v2_effective_date_should_be_greater_than_now() {
         let signed_vl = test_sign_vl(
-            2, test_data!("manifests_list_1.txt").to_string(),
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
             91,
             365,
             Some(get_valid_effective_timestamp(2000)),
             None,
             SecretType::Ed25519,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = decode_vl_v2(&signed_vl).unwrap();
-        assert!(vl.decoded_blobs_v2.clone().unwrap()[0].decoded_blob.clone().unwrap().effective.unwrap() > get_ripple_now());
+        assert!(
+            vl.decoded_blobs_v2.clone().unwrap()[0]
+                .decoded_blob
+                .clone()
+                .unwrap()
+                .effective
+                .unwrap()
+                > get_ripple_now()
+        );
     }
 
     #[tokio::test]
-    async fn v2_effective_date_cannot_be_repeated() { 
+    async fn v2_effective_date_cannot_be_repeated() {
         let signed_vl = test_sign_vl(
             2,
             test_data!("manifests_list_1.txt").to_string(),
@@ -413,8 +522,10 @@ mod test {
             Some(get_valid_effective_timestamp(2000)),
             None,
             SecretType::Secp256k1,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = test_sign_vl(
             2,
             test_data!("manifests_list_1.txt").to_string(),
@@ -423,9 +534,12 @@ mod test {
             Some(get_valid_effective_timestamp(2000)),
             Some(signed_vl),
             SecretType::Ed25519,
-            None
-        ).await;
-        assert!(vl.err().unwrap().to_string() == "Exact same Effective date already present in the VL");
+            None,
+        )
+        .await;
+        assert!(
+            vl.err().unwrap().to_string() == "Exact same Effective date already present in the VL"
+        );
     }
 
     // Sequence numbers
@@ -440,8 +554,10 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = test_sign_vl(
             2,
             test_data!("manifests_list_1.txt").to_string(),
@@ -450,9 +566,12 @@ mod test {
             get_timestamp_from_string("2024-01-05 23:56".to_owned()),
             Some(signed_vl),
             SecretType::Secp256k1,
-            None
-        ).await;
-        assert!(vl.err().unwrap().to_string() == "Sequence number must be greater than the current one");
+            None,
+        )
+        .await;
+        assert!(
+            vl.err().unwrap().to_string() == "Sequence number must be greater than the current one"
+        );
     }
 
     #[tokio::test]
@@ -465,8 +584,10 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         let vl = test_sign_vl(
             2,
             test_data!("manifests_list_1.txt").to_string(),
@@ -475,9 +596,12 @@ mod test {
             get_timestamp_from_string("2024-01-05 23:56".to_owned()),
             Some(signed_vl),
             SecretType::Secp256k1,
-            None
-        ).await;
-        assert!(vl.err().unwrap().to_string() == "Sequence number must be greater than the current one");
+            None,
+        )
+        .await;
+        assert!(
+            vl.err().unwrap().to_string() == "Sequence number must be greater than the current one"
+        );
     }
 
     // Expiration dates
@@ -491,8 +615,9 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            None
-        ).await;
+            None,
+        )
+        .await;
         assert!(vl.is_err());
     }
 
@@ -506,8 +631,9 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Ed25519,
-            None
-        ).await;
+            None,
+        )
+        .await;
         assert!(vl.is_err());
     }
 
@@ -521,19 +647,21 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             SecretType::Secp256k1,
-            None
-        ).await;
+            None,
+        )
+        .await;
         assert!(vl.is_err());
     }
 
-    // If the manifest is not present in a blobs-v2 array entry, then the top-level manifest will be used when checking the signature. 
+    // If the manifest is not present in a blobs-v2 array entry, then the top-level manifest will be used when checking the signature.
     #[tokio::test]
     async fn should_load_v2_with_blob_v2_manifest() {
         // Sign
-        let vl = get_vl(test_data!("vl_v2_1_with_blobv2_manifest.json")).await.unwrap();
+        let vl = get_vl(test_data!("vl_v2_1_with_blobv2_manifest.json"))
+            .await
+            .unwrap();
         // Decode
         let vl = decode_vl_v2(&vl).unwrap();
         assert!(verify_vl(vl.clone()).is_ok());
     }
-
 }

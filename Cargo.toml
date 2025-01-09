@@ -1,6 +1,6 @@
 [package]
 name = "xrpl_vl_tool"
-version = "0.0.5"
+version = "0.0.7"
 edition = "2021"
 
 [[bin]]
