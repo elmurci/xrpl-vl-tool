@@ -1,8 +1,46 @@
 use crate::{
-    enums::{ManifestField, Version}, errors::DecodeManifestError, structs::DecodedManifest, util::{base58_decode, bytes_to_base58, get_key_bytes}
+    errors::DecodeManifestError,
+    util::{base58_decode, bytes_to_base58, get_key_bytes, Version},
 };
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct DecodedManifest {
+    pub sequence: u32,
+    pub master_public_key: String,
+    pub signature: String,
+    pub signing_public_key: String,
+    pub master_signature: String,
+    pub domain: Option<String>,
+    pub verification: bool,
+}
+
+#[repr(u16)]
+#[derive(Debug)]
+pub enum ManifestField {
+    Sequence = 0x24,
+    MasterPublicKey = 0x71,
+    SigningPublicKey = 0x73,
+    Signature = 0x76,
+    Domain = 0x77,
+    MasterSignature = 0x7012,
+}
+
+impl ManifestField {
+    pub fn try_into(input: &u16) -> Result<ManifestField> {
+        match input {
+            0x24 => Ok(ManifestField::Sequence),
+            0x71 => Ok(ManifestField::MasterPublicKey),
+            0x73 => Ok(ManifestField::SigningPublicKey),
+            0x76 => Ok(ManifestField::Signature),
+            0x77 => Ok(ManifestField::Domain),
+            0x7012 => Ok(ManifestField::MasterSignature),
+            _ => Err(anyhow!("Could not parse manifest field")),
+        }
+    }
+}
 
 pub fn encode_manifest(
     sequence: u32,
@@ -18,7 +56,7 @@ pub fn encode_manifest(
 
     // Master public key
     let master_public_key_bytes = base58_decode(Version::NodePublic, &master_public_key)?;
-    let mut mpk_bytes = vec![0x71]; 
+    let mut mpk_bytes = vec![0x71];
     mpk_bytes.push(master_public_key_bytes.len() as u8);
     mpk_bytes.extend_from_slice(&master_public_key_bytes);
 
@@ -66,8 +104,9 @@ pub fn encode_manifest(
 }
 
 pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
-    let manifest_bytes = BASE64_STANDARD.decode(manifest_blob)
-    .map_err(|_| DecodeManifestError::Base64Error)?;
+    let manifest_bytes = BASE64_STANDARD
+        .decode(manifest_blob)
+        .map_err(|_| DecodeManifestError::Base64Error)?;
 
     let mut remaining_bytes = &manifest_bytes[..];
 
@@ -75,7 +114,8 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
 
     while !remaining_bytes.is_empty() {
         let (manifest_field_type, data, rest) = match decode_next_field(remaining_bytes)
-        .map_err(|_| anyhow::Error::from(DecodeManifestError::NextFieldError))? {
+            .map_err(|_| anyhow::Error::from(DecodeManifestError::NextFieldError))?
+        {
             Some(value) => value,
             None => break,
         };
@@ -85,24 +125,21 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
             manifest_field_type[0] as u16
         } else {
             u16::from_be_bytes(
-                manifest_field_type.try_into().map_err(|_| {
-                    anyhow::Error::from(DecodeManifestError::InvalidManifestType)
-                })?
+                manifest_field_type
+                    .try_into()
+                    .map_err(|_| anyhow::Error::from(DecodeManifestError::InvalidManifestType))?,
             )
         };
 
-        let field_type = ManifestField::from_value(&manifest_field_type)
-        .map_err(|_err| {
-            anyhow::Error::new(DecodeManifestError::InvalidManifestValue)
-        })?;
-        
+        let field_type = ManifestField::try_into(&manifest_field_type)
+            .map_err(|_err| anyhow::Error::new(DecodeManifestError::InvalidManifestValue))?;
+
         match field_type {
             ManifestField::Sequence => {
-                result.sequence = u32::from_be_bytes(
-                    data.try_into().map_err(|_| {
+                result.sequence =
+                    u32::from_be_bytes(data.try_into().map_err(|_| {
                         anyhow::Error::from(DecodeManifestError::InvalidFieldLength)
-                    })?
-                );
+                    })?);
             }
             ManifestField::MasterPublicKey => {
                 result.master_public_key = bytes_to_base58(&data)?;
@@ -117,9 +154,7 @@ pub fn decode_manifest(manifest_blob: &str) -> Result<DecodedManifest> {
                 result.master_signature = hex::encode(data);
             }
             ManifestField::Domain => {
-                result.domain = Some(
-                    String::from_utf8(data)?
-                );
+                result.domain = Some(String::from_utf8(data)?);
             }
         }
     }
@@ -181,10 +216,10 @@ fn decode_next_field(barray: &[u8]) -> Result<Option<DecodField>> {
 
 pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec<u8>> {
     let mut serialized_manifest = Vec::new();
-    let master_public_key =
-        get_key_bytes(&decoded_manifest.master_public_key).expect("Could not get Master Public Key bytes");
-    let signing_public_key =
-        get_key_bytes(&decoded_manifest.signing_public_key).expect("Could not get Signing Public Key bytes");
+    let master_public_key = get_key_bytes(&decoded_manifest.master_public_key)
+        .context("Could not get Master Public Key bytes")?;
+    let signing_public_key = get_key_bytes(&decoded_manifest.signing_public_key)
+        .context("Could not get Signing Public Key bytes")?;
 
     // Prefix
     serialized_manifest.extend_from_slice(b"MAN");
@@ -193,8 +228,7 @@ pub fn serialize_manifest_data(decoded_manifest: &DecodedManifest) -> Result<Vec
 
     // Sequence
     serialized_manifest.extend_from_slice(&[ManifestField::Sequence as u8]);
-    serialized_manifest
-        .extend_from_slice((decoded_manifest.sequence).to_be_bytes().as_ref());
+    serialized_manifest.extend_from_slice((decoded_manifest.sequence).to_be_bytes().as_ref());
 
     // Master Public Key
     serialized_manifest.extend_from_slice(&[ManifestField::MasterPublicKey as u8]);
@@ -226,9 +260,15 @@ mod tests {
         let manifest = "JAAAAAFxIe0Wqdp2/gl3yT498qNqAeNLM6fj4x+3/xiEbK0i0JEo53MhA5077HWE7RyCE2ricOZTqAXN6kom3ShR+ssRE+NZXSiIdkYwRAIgS8af2OZhoqOZpsqhr5nV2mmh0Pr9Mj5PIg7bKx94wuACIGyDRzTMJidtKN2rUEEDMECJT2pKpFtDJD+m+HcHcO2ncBJAS1wbIiBipI1oYw921hzocGeLLjMN+8ijpKf5EizOs5G98iqJS3DOjpjAzrGTNPDNjCIE4dnE+HWy33uTxkMlBA==";
         let decoded_manifest = decode_manifest(manifest).unwrap();
         assert_eq!(decoded_manifest.sequence, 1);
-        assert_eq!(decoded_manifest.master_public_key, "nHBXRNjWjs52ghGwrEkZMbYsa76xhtyqW5wFwoWtjf8pZSFifx9E");
+        assert_eq!(
+            decoded_manifest.master_public_key,
+            "nHBXRNjWjs52ghGwrEkZMbYsa76xhtyqW5wFwoWtjf8pZSFifx9E"
+        );
         assert_eq!(decoded_manifest.domain, None);
-        assert_eq!(decoded_manifest.signing_public_key, "n9MgVP3JT1z1CA3azzTGvmUhoS3D9EfgMSVuiDQmCyQmw95bXFgt");
+        assert_eq!(
+            decoded_manifest.signing_public_key,
+            "n9MgVP3JT1z1CA3azzTGvmUhoS3D9EfgMSVuiDQmCyQmw95bXFgt"
+        );
     }
 
     #[test]
@@ -236,9 +276,15 @@ mod tests {
         let manifest = "JAAAAAFxIe1wmHckcXaegqVGYymWfci/UclBGQFk6I18ycOTrUB8UnMhA8DziyNuw0Q7SFhXnP/d5g838JjxdulqFyAPyRz4ApUvdkcwRQIhANMLcUuME5k+ow4iZIkNDB3t2ZLybz70IKOIuW7rpyeVAiBu5Q2qqbALmcxRHAx3rr1ErXu8pYOYmlLh1pOCeO5pv3cNZWtpc2VycmVwZS5lc3ASQDkMGLzDu1azJ33rYJCNg/TOufVyC5nh8xPhtqMMDv7CFG+oRZjrYJMFG4G9aU8L15ezwgNiyIXVHSmxVtFb3Ak=";
         let decoded_manifest = decode_manifest(manifest).unwrap();
         assert_eq!(decoded_manifest.sequence, 1);
-        assert_eq!(decoded_manifest.master_public_key, "nHUDpRzvY8fSRfQkmJMqjmVSaFmMEVxBNn2tNQy5VAhFJ6is6GFk");
+        assert_eq!(
+            decoded_manifest.master_public_key,
+            "nHUDpRzvY8fSRfQkmJMqjmVSaFmMEVxBNn2tNQy5VAhFJ6is6GFk"
+        );
         assert_eq!(decoded_manifest.domain, Some("ekiserrepe.es".to_string()));
-        assert_eq!(decoded_manifest.signing_public_key, "n9MxDjQMr1DkzW3Z5X1guKJq4QNDEeYFPgqGgHfpzerGbHWGZvj4");
+        assert_eq!(
+            decoded_manifest.signing_public_key,
+            "n9MxDjQMr1DkzW3Z5X1guKJq4QNDEeYFPgqGgHfpzerGbHWGZvj4"
+        );
     }
 
     #[test]
@@ -268,5 +314,4 @@ mod tests {
         ).unwrap();
         assert_eq!(encoded_manifest, "JAAAAANxIe3T256FqbJnckZL6fzhIAB+UEqvev9GSPok4VWzWkj+bXMhAyKqTFBL4DxByKxxFIfO5yjIyyG3mi9abgq3siqYomIqdkcwRQIhANJptWUm/eDDRSOFlTTG8BYpSTrgiyMQmtDmBbUo0/eRAiButRwSoDc3BIOVyCWrzidcDfBqbUIIWJtbfBJ5VGXPe3cIdGVxdS5kZXZwEkBTRQS+U249Vl3LuNVY8YvO82PXWjzV7IVRGSW7jO4pLu7C+l2fRCcLWUemLMsZ1zJz7nWc52M3qXjEjyHESB8M");
     }
-
 }

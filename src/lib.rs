@@ -1,9 +1,8 @@
-pub mod vl;
-pub mod secret;
+pub mod cli;
 pub mod crypto;
-pub mod enums;
+pub mod errors;
 pub mod manifest;
-pub mod structs;
+pub mod secret;
 pub mod time;
 pub mod util;
-pub mod errors;
+pub mod vl;

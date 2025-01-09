@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use chrono::DateTime;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -5,7 +6,7 @@ pub fn convert_to_human_time(timestamp: i64) -> String {
     let dt = DateTime::from_timestamp(timestamp, 0).unwrap();
     format!("{}", dt.format("%Y-%m-%d %H:%M:%S"))
 }
-pub fn convert_to_ripple_time(tstamp: Option<i64>) -> i64 {
+pub fn convert_to_ripple_time(tstamp: Option<i64>) -> Result<i64> {
     let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
     let current_time = match tstamp {
         Some(ts) => ts,
@@ -13,11 +14,11 @@ pub fn convert_to_ripple_time(tstamp: Option<i64>) -> i64 {
             let start = SystemTime::now();
             let since_the_epoch = start
                 .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards");
+                .context("Time went backwards")?;
             since_the_epoch.as_secs() as i64
         }
     };
-    current_time - ripple_epoch
+    Ok(current_time - ripple_epoch)
 }
 
 pub fn convert_to_unix_time(rtstamp: i64) -> i64 {
@@ -25,11 +26,11 @@ pub fn convert_to_unix_time(rtstamp: i64) -> i64 {
     rtstamp + ripple_epoch
 }
 
-pub fn get_timestamp() -> u64 {
-    SystemTime::now()
+pub fn get_timestamp() -> Result<u64> {
+    Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Could not get time")
-        .as_secs()
+        .context("Could not get time")?
+        .as_secs())
 }
 
 #[cfg(test)]
