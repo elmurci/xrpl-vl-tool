@@ -2,7 +2,7 @@ use crate::crypto::verify_signature;
 use crate::manifest::{serialize_manifest_data, DecodedManifest};
 use crate::time::get_timestamp;
 use crate::vl::{DecodedVl, Validator};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use color_eyre::owo_colors::OwoColorize;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
@@ -18,8 +18,8 @@ pub enum Version {
 impl From<Version> for u8 {
     fn from(version: Version) -> Self {
         match version {
-            Version::NodePublic => 23,
-            Version::NodePrivate => 85,
+            Version::NodePublic => 28,
+            Version::NodePrivate => 32,
         }
     }
 }
