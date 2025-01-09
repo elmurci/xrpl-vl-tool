@@ -17,7 +17,15 @@ For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-
 
 The command allows for either a url or a file path:
 
-`./xrpl_vl_tool load {url_or_path}`
+```
+Usage: xrpl_vl_tool load <URL_OR_FILE>
+
+Arguments:
+  <URL_OR_FILE>  The URL or file path of the Validation List. You can pass either
+
+Options:
+  -h, --help  Print help
+```
 
 And loads the given VL performing some validations.
 
@@ -76,7 +84,33 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 
 Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
-`./xrpl_vl_tool sign {version} {publisher_manifest} {manifests_file} {sequence} {expiration_in_days} {secret_provider(local, aws or vault)} {secret_name} {effective_date(for v2)} {effective_time(for v2)} {v2_vl_file(optional, for v2)}`
+```
+Usage: xrpl_vl_tool sign [OPTIONS] --vl-version <VL_VERSION> --publisher-manifest <PUBLISHER_MANIFEST> --manifests-file <MANIFESTS_FILE> --sequence <SEQUENCE> --expiration <EXPIRATION_IN_DAYS> --secret-provider <SECRET_PROVIDER> --secret-name <SECRET_NAME>
+
+Options:
+  -v, --vl-version <VL_VERSION>
+          The version of the Validation List (1 or 2)
+  -p, --publisher-manifest <PUBLISHER_MANIFEST>
+          The publisher manifest
+  -m, --manifests-file <MANIFESTS_FILE>
+          Path to the file that holds the list of manifests, one per line
+  -s, --sequence <SEQUENCE>
+          The sequence number of the Validation List
+  -e, --expiration <EXPIRATION_IN_DAYS>
+          The expiration in days of the Validation List
+  -x, --secret-provider <SECRET_PROVIDER>
+          The secret provider to use: aws, vault or local. For local secret, this value should be the path to the file that holds the secret
+  -n, --secret-name <SECRET_NAME>
+          The secret id to use
+  -d, --effective-date-day <EFFECTIVE_DATE_DAY>
+          The effective day (YYYY/MM/DD) for the Validation List (only for version 2)
+  -t, --effective-date-time <EFFECTIVE_DATE_TIME>
+          The effective time (HH:MM) for the Validation List (only for version 2)
+  -f, --v2-vl-file <V2_VL_FILE>
+          The effective time for the Validation List (only for version 2)
+  -h, --help
+          Print help
+```
 
 #### AWS Secrets
 
@@ -117,26 +151,26 @@ For local secrets, specify the path to a file containing the public and private 
 
 ```
 ./xrpl_vl_tool sign \
---vl_version 1 \
---publisher_manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
---manifests_file tests/data/manifests_list_1.txt \
+--vl-version 1 \
+--publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
+--manifests-file tests/data/manifests_list_1.txt \
 --sequence 80 \
 --expiration 365 \
---secret_provider vault \
---secret_name vl-tool/dev:keypair
+--secret-provider vault \
+--secret-name vl-tool/dev:keypair
 ```
 
 ```
 ./xrpl_vl_tool sign \
---vl_version 2 \
---publisher_manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
---manifests_file tests/data/manifests_list_1.txt \
+--vl-version 2 \
+--publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
+--manifests-file tests/data/manifests_list_1.txt \
 --sequence 80 \
 --expiration 365 \
---secret_provider local \
---secret_name path/to/local_keys.json \
---effective_date_day 2026-12-31 \
---effective_date_time 09:00
+--secret-provider local \
+--secret-name path/to/local_keys.json \
+--effective-date-day 2026-12-31 \
+--effective-date-time 09:00
 ```
 
 *Example response:*
@@ -198,20 +232,47 @@ Example:
 
 ### Encode (manifest)
 
-Encodes a manifest, example:
+Encodes a manifest.
+
+```
+Usage: xrpl_vl_tool encode-manifest [OPTIONS] --sequence <SEQUENCE> --master-public-key <MASTER_PUBLIC_KEY> --signing-public-key <SIGNING_PUBLIC_KEY> --signature <SIGNATURE> --master-signature <MASTER_SIGNATURE>
+
+Options:
+  -s, --sequence <SEQUENCE>                      Manifest sequence number
+  -m, --master-public-key <MASTER_PUBLIC_KEY>    Master Public Key in Base58 format
+  -p, --signing-public-key <SIGNING_PUBLIC_KEY>  Signing Public Key in Base58 format
+  -x, --signature <SIGNATURE>                    Signature in Hex format
+  -y, --master-signature <MASTER_SIGNATURE>      Master Signature in Hex format
+  -d, --domain <DOMAIN>                          Domain (optional)
+  -h, --help                                     Print help
+```
+
+Example:
 
 ```
 ./xrpl_vl_tool encode-manifest \
 --sequence 1 \
---master_public_key nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4 \
---signing_public_key nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU \
+--master-public-key nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4 \
+--signing-public-key nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU \
 --signature C5720E77740412D560CC4032C8B36C30C07A5272B5278E9D62670C135D55D7B1A4712F3B72722A2DA3726022619DBA45EE6DBAE37AA08D534D9FED8FFEEB0D01 \
---master_signature DCCD04394FB7F61981F2FC1F81EAE75D9203435FA8D1D9EE5E35FBDE80CB82C69CC17CCB05539D069480B09C180FE9D6F1869269C38712C59A3E5A1FD3912C02
+--master-signature DCCD04394FB7F61981F2FC1F81EAE75D9203435FA8D1D9EE5E35FBDE80CB82C69CC17CCB05539D069480B09C180FE9D6F1869269C38712C59A3E5A1FD3912C02
 ```
 
 ### Decode (manifest)
 
-Decodes a manifest, example:
+Decodes a manifest.
+
+```
+Usage: xrpl_vl_tool decode-manifest <MANIFEST>
+
+Arguments:
+  <MANIFEST>  The manifest to decode
+
+Options:
+  -h, --help  Print help
+```
+
+Example:
 
 ```
 ./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
@@ -231,4 +292,6 @@ Decodes a manifest, example:
 
 Example:
 
-`cargo run decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==`
+```
+cargo run decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
+```
