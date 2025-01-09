@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 macro_rules! test_data {
     ($fname:expr) => {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/", $fname) // assumes Linux ('/')!
@@ -117,7 +119,7 @@ mod test {
         let signing_secret = generate_secret(&secret_type);
         if version == 2 && number_of_blobs.is_some() {
             let sig_secret = &signing_secret.clone();
-            let effective_date = effective.clone().unwrap() + 1_000_000;
+            let effective_date = effective.unwrap() + 1_000_000;
             let mut vl = v2_vl.unwrap_or_default();
             for index in 0..number_of_blobs.unwrap() {
                 vl = sign_vl(
@@ -145,7 +147,7 @@ mod test {
                 sequence,
                 expiration,
                 signing_secret.clone(),
-                effective.clone(),
+                effective,
                 v2_vl,
             )
             .await
@@ -161,9 +163,9 @@ mod test {
         assert!(verified_vl.version == 1);
         assert!(verified_vl.blobs_v2.is_none());
         for validator in verified_vl.decoded_blob.clone().unwrap().validators {
-            assert!(validator.decoded_manifest.unwrap().verification == true);
+            assert!(validator.decoded_manifest.unwrap().verification);
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -188,9 +190,9 @@ mod test {
         assert!(verified_vl.version == 1);
         assert!(verified_vl.blobs_v2.is_none());
         for validator in verified_vl.decoded_blob.clone().unwrap().validators {
-            assert!(validator.decoded_manifest.unwrap().verification == true);
+            assert!(validator.decoded_manifest.unwrap().verification);
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -202,12 +204,12 @@ mod test {
         assert!(verified_vl.blob.is_none());
         assert!(verified_vl.signature.is_none());
         for blob_v2 in verified_vl.decoded_blobs_v2.unwrap() {
-            assert!(blob_v2.blob_verification.unwrap() == true);
+            assert!(blob_v2.blob_verification.unwrap());
             for validator in blob_v2.decoded_blob.unwrap().validators {
-                assert!(validator.decoded_manifest.unwrap().verification == true);
+                assert!(validator.decoded_manifest.unwrap().verification);
             }
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -231,12 +233,12 @@ mod test {
         assert!(verified_vl.blob.is_none());
         assert!(verified_vl.signature.is_none());
         for blob_v2 in verified_vl.decoded_blobs_v2.unwrap() {
-            assert!(blob_v2.blob_verification.unwrap() == true);
+            assert!(blob_v2.blob_verification.unwrap());
             for validator in blob_v2.decoded_blob.unwrap().validators {
-                assert!(validator.decoded_manifest.unwrap().verification == true);
+                assert!(validator.decoded_manifest.unwrap().verification);
             }
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -260,12 +262,12 @@ mod test {
         assert!(verified_vl.blob.is_none());
         assert!(verified_vl.signature.is_none());
         for blob_v2 in verified_vl.decoded_blobs_v2.unwrap() {
-            assert!(blob_v2.blob_verification.unwrap() == true);
+            assert!(blob_v2.blob_verification.unwrap());
             for validator in blob_v2.decoded_blob.unwrap().validators {
-                assert!(validator.decoded_manifest.unwrap().verification == true);
+                assert!(validator.decoded_manifest.unwrap().verification);
             }
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -290,9 +292,9 @@ mod test {
         assert!(verified_vl.version == 1);
         assert!(verified_vl.blobs_v2.is_none());
         for validator in verified_vl.decoded_blob.clone().unwrap().validators {
-            assert!(validator.decoded_manifest.unwrap().verification == true);
+            assert!(validator.decoded_manifest.unwrap().verification);
         }
-        assert!(verified_vl.manifest.verification == true);
+        assert!(verified_vl.manifest.verification);
     }
 
     #[tokio::test]
@@ -309,79 +311,61 @@ mod test {
             Some(0),
         )
         .await;
-        assert!(signed_vl.is_err() == true);
+        assert!(signed_vl.is_err());
     }
 
     // VL wrong format
 
     #[tokio::test]
     async fn should_error_v1_invalid_format() {
-        assert!(
-            load_vl(test_data!("vl_v1_wrong_format.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v1_wrong_format.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_format() {
-        assert!(
-            load_vl(test_data!("vl_v2_wrong_format.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v2_wrong_format.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v1_invalid_master_manifest() {
-        assert!(
-            load_vl(test_data!("vl_v1_wrong_manifest_1.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v1_wrong_manifest_1.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v1_invalid_validator_manifest() {
-        assert!(
-            load_vl(test_data!("vl_v1_wrong_manifest_2.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v1_wrong_manifest_2.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v1_invalid_blob_format() {
-        assert!(load_vl(test_data!("vl_v1_wrong_blob.json")).await.is_err() == true);
+        assert!(load_vl(test_data!("vl_v1_wrong_blob.json")).await.is_err());
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_master_manifest() {
-        assert!(
-            load_vl(test_data!("vl_v2_wrong_manifest_1.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v2_wrong_manifest_1.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_validator_manifest() {
-        assert!(
-            load_vl(test_data!("vl_v2_wrong_manifest_2.json"))
-                .await
-                .is_err()
-                == true
-        );
+        assert!(load_vl(test_data!("vl_v2_wrong_manifest_2.json"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn should_error_v2_invalid_blob_format() {
-        assert!(load_vl(test_data!("vl_v2_wrong_blob.json")).await.is_err() == true);
+        assert!(load_vl(test_data!("vl_v2_wrong_blob.json")).await.is_err());
     }
 
     // VL's that shouldn't verify (v1 and v2)
@@ -400,7 +384,7 @@ mod test {
             .await
             .unwrap();
         let verified_vl = verify_vl(vl.clone()).unwrap();
-        assert!(verified_vl.manifest.verification == false);
+        assert!(!verified_vl.manifest.verification);
     }
 
     // Encode / Decode manifest
