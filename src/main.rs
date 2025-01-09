@@ -1,5 +1,5 @@
 use anstream::println;
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use clap::Parser;
 use color_eyre::owo_colors::OwoColorize;
@@ -66,7 +66,15 @@ async fn main() -> Result<()> {
             let effective = if *vl_version == 2 {
                 Some(
                     NaiveDateTime::parse_from_str(
-                        &format!("{} {}", effective_date_day, effective_date_time),
+                        &format!(
+                            "{} {}",
+                            effective_date_day
+                                .clone()
+                                .context("Could not get effective date's day")?,
+                            effective_date_time
+                                .clone()
+                                .context("Could not get effective date's time")?
+                        ),
                         "%Y-%m-%d %H:%M",
                     )
                     .expect("Could not parse effective timestamp, format is %Y-%m-%d %H:%M")

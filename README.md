@@ -115,7 +115,29 @@ For local secrets, specify the path to a file containing the public and private 
 
 *Example request:*
 
-`./xrpl_vl_tool sign 2 JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== tests/data/manifests_list_1.txt 81 365 vault vl-tool/dev:keypair 2015-09-05 23:56 tests/data/vl_v2_2.json`
+```
+./xrpl_vl_tool sign \
+--vl_version 1 \
+--publisher_manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
+--manifests_file tests/data/manifests_list_1.txt \
+--sequence 80 \
+--expiration 365 \
+--secret_provider vault \
+--secret_name vl-tool/dev:keypair
+```
+
+```
+./xrpl_vl_tool sign \
+--vl_version 2 \
+--publisher_manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
+--manifests_file tests/data/manifests_list_1.txt \
+--sequence 80 \
+--expiration 365 \
+--secret_provider local \
+--secret_name path/to/local_keys.json \
+--effective_date_day 2026-12-31 \
+--effective_date_time 09:00
+```
 
 *Example response:*
 
@@ -179,7 +201,12 @@ Example:
 Encodes a manifest, example:
 
 ```
-./xrpl_vl_tool encode-manifest 1 nHBtBkHGfL4NpB54H1AwBaaSJkSJLUSPvnUNAcuNpuffYB51VjH6 nHBYNPHW6LJGzHF8AynFg4TdVD9M9wo5YSf7ybgf8Gobu42GHxbd 109C8F7EA54617B24305D44AF548FADE9BDCCC10EC43C76E1A4BEF3C588817A6C95757244F7A1170B674D36FE2F0531EF2517A07DE1DF5424AEEBB64591BBD1D CB7A643EBF6386AC8FBC1ED3E0DCFC8FF32311A35AF6884C2F3B689F1000643A5C07ECD7F1056F43819488078F2C2285FDFA9329F8549127E86E8CCF3A2FDB09
+./xrpl_vl_tool encode-manifest \
+--sequence 1 \
+--master_public_key nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4 \
+--signing_public_key nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU \
+--signature C5720E77740412D560CC4032C8B36C30C07A5272B5278E9D62670C135D55D7B1A4712F3B72722A2DA3726022619DBA45EE6DBAE37AA08D534D9FED8FFEEB0D01 \
+--master_signature DCCD04394FB7F61981F2FC1F81EAE75D9203435FA8D1D9EE5E35FBDE80CB82C69CC17CCB05539D069480B09C180FE9D6F1869269C38712C59A3E5A1FD3912C02
 ```
 
 ### Decode (manifest)
