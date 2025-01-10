@@ -4,7 +4,7 @@ version = "0.0.7"
 edition = "2021"
 
 [[bin]]
-name = "xrpl_vl_tool"
+name = "xrpl-vl-tool"
 path = "src/main.rs"
 
 [lib]
@@ -39,3 +39,5 @@ thiserror = "2.0.9"
 ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
 rand = "0.8.5"
 secp256k1 = { version = "0.30.0", features = ["hashes", "rand"] }
+assert_cmd = "2.0"
+predicates = "2"
