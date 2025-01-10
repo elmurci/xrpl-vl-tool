@@ -18,7 +18,7 @@ For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-
 The command allows for either a url or a file path:
 
 ```
-Usage: xrpl_vl_tool load <URL_OR_FILE>
+Usage: xrpl-vl-tool load <URL_OR_FILE>
 
 Arguments:
   <URL_OR_FILE>  The URL or file path of the Validation List. You can pass either
@@ -33,7 +33,7 @@ And loads the given VL performing some validations.
 
 *Example request:*
 
-`./xrpl_vl_tool load https://vl.xrplf.org` or `./xrpl_vl_tool load /dev/vl.json`
+`./xrpl-vl-tool load https://vl.xrplf.org` or `./xrpl-vl-tool load /dev/vl.json`
 
 *Example response:*
 
@@ -85,7 +85,7 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
 ```
-Usage: xrpl_vl_tool sign [OPTIONS] --vl-version <VL_VERSION> --publisher-manifest <PUBLISHER_MANIFEST> --manifests-file <MANIFESTS_FILE> --sequence <SEQUENCE> --expiration <EXPIRATION_IN_DAYS> --secret-provider <SECRET_PROVIDER> --secret-name <SECRET_NAME>
+Usage: xrpl-vl-tool sign [OPTIONS] --vl-version <VL_VERSION> --publisher-manifest <PUBLISHER_MANIFEST> --manifests-file <MANIFESTS_FILE> --sequence <SEQUENCE> --expiration <EXPIRATION_IN_DAYS> --secret-provider <SECRET_PROVIDER> --secret-name <SECRET_NAME>
 
 Options:
   -v, --vl-version <VL_VERSION>
@@ -150,7 +150,7 @@ For local secrets, specify the path to a file containing the public and private 
 *Example request:*
 
 ```
-./xrpl_vl_tool sign \
+./xrpl-vl-tool sign \
 --vl-version 1 \
 --publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
 --manifests-file tests/data/manifests_list_1.txt \
@@ -161,7 +161,7 @@ For local secrets, specify the path to a file containing the public and private 
 ```
 
 ```
-./xrpl_vl_tool sign \
+./xrpl-vl-tool sign \
 --vl-version 2 \
 --publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
 --manifests-file tests/data/manifests_list_1.txt \
@@ -235,7 +235,7 @@ Example:
 Encodes a manifest.
 
 ```
-Usage: xrpl_vl_tool encode-manifest [OPTIONS] --sequence <SEQUENCE> --master-public-key <MASTER_PUBLIC_KEY> --signing-public-key <SIGNING_PUBLIC_KEY> --signature <SIGNATURE> --master-signature <MASTER_SIGNATURE>
+Usage: xrpl-vl-tool encode-manifest [OPTIONS] --sequence <SEQUENCE> --master-public-key <MASTER_PUBLIC_KEY> --signing-public-key <SIGNING_PUBLIC_KEY> --signature <SIGNATURE> --master-signature <MASTER_SIGNATURE>
 
 Options:
   -s, --sequence <SEQUENCE>                      Manifest sequence number
@@ -250,7 +250,7 @@ Options:
 Example:
 
 ```
-./xrpl_vl_tool encode-manifest \
+./xrpl-vl-tool encode-manifest \
 --sequence 1 \
 --master-public-key nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4 \
 --signing-public-key nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU \
@@ -263,7 +263,7 @@ Example:
 Decodes a manifest.
 
 ```
-Usage: xrpl_vl_tool decode-manifest <MANIFEST>
+Usage: xrpl-vl-tool decode-manifest <MANIFEST>
 
 Arguments:
   <MANIFEST>  The manifest to decode
@@ -275,7 +275,7 @@ Options:
 Example:
 
 ```
-./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
+./xrpl-vl-tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
 ```
 
 ### Run locally

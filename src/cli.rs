@@ -42,14 +42,14 @@ pub enum Commands {
         #[arg(
             short = 'd',
             long = "effective-date-day",
-            required_if_eq("vl-version", "2")
+            required_if_eq("vl_version", "2")
         )]
         effective_date_day: Option<String>,
         /// The effective time (HH:MM) for the Validation List (only for version 2)
         #[arg(
             short = 't',
             long = "effective-date-time",
-            required_if_eq("vl-version", "2")
+            required_if_eq("vl_version", "2")
         )]
         effective_date_time: Option<String>,
         /// Sometimes you might want to add a new UNL version to an existing Validators List, specify the path or URL to that VL here (only for version 2)
