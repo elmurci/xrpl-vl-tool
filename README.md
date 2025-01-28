@@ -107,7 +107,7 @@ Options:
   -t, --effective-date-time <EFFECTIVE_DATE_TIME>
           The effective time (HH:MM) for the Validation List (only for version 2)
   -f, --v2-vl-file <V2_VL_FILE>
-          The effective time for the Validation List (only for version 2)
+          If specified, it will create a new entry in `blovs_v2` preserving the current entries. It will create a brand new file from scratch otherwise (only for version 2 - optional)
   -h, --help
           Print help
 ```
