@@ -101,7 +101,7 @@ Options:
   -x, --secret-provider <SECRET_PROVIDER>
           The secret provider to use: aws, vault or local. For local secret, this value should be the path to the file that holds the secret
   -n, --secret-name <SECRET_NAME>
-          The secret id to use
+          The secret id to use. For `local`, the name of the file holding the secret.
   -d, --effective-date-day <EFFECTIVE_DATE_DAY>
           The effective day (YYYY/MM/DD) for the Validation List (only for version 2)
   -t, --effective-date-time <EFFECTIVE_DATE_TIME>
