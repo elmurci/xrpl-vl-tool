@@ -11,7 +11,7 @@ use crate::{
     errors::VlValidationError,
     manifest::{decode_manifest, DecodedManifest},
     secret::Secret,
-    time::convert_to_ripple_time,
+    time::{blobs_have_no_time_gaps, convert_to_ripple_time},
     util::{
         base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest, Version,
     },
@@ -232,6 +232,10 @@ pub async fn sign_vl(
             }
         } else {
             anyhow::bail!(VlValidationError::MalformedVl);
+        }
+        // Make sure there is no gap when generating new UNLs
+        if !blobs_have_no_time_gaps(v.blobs_v2.unwrap()).unwrap() {
+            anyhow::bail!(VlValidationError::HasGaps);
         }
     }
 
