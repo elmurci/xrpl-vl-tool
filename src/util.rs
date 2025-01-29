@@ -121,7 +121,7 @@ pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
     if key.len() >= 64 {
         Ok(base58_decode(
             Version::NodePublic,
-            hex_to_base58(key).unwrap().as_str(),
+            hex_to_base58(key).context("Could not convert hex to base58")?.as_str(),
         )?)
     } else if key.len() != 33 {
         Ok(base58_decode(Version::NodePublic, key)?)

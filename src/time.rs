@@ -4,9 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::vl::BlobV2;
 
-pub fn convert_to_human_time(timestamp: i64) -> String {
-    let dt = DateTime::from_timestamp(timestamp, 0).unwrap();
-    format!("{}", dt.format("%Y-%m-%d %H:%M:%S"))
+pub fn convert_to_human_time(timestamp: i64) -> Result<String> {
+    let dt = DateTime::from_timestamp(timestamp, 0).context("Could not get timestamp")?;
+    Ok(format!("{}", dt.format("%Y-%m-%d %H:%M:%S")))
 }
 pub fn convert_to_ripple_time(tstamp: Option<i64>) -> Result<i64> {
     let ripple_epoch = 946684800; // Ripple epoch in seconds since UNIX epoch (1/1/2000)
@@ -38,7 +38,7 @@ pub fn get_timestamp() -> Result<u64> {
 pub fn blobs_have_no_time_gaps(mut blobs: Vec<BlobV2>) -> Result<bool> {
 
     // Sort by start date
-    blobs.sort_by_key(|blob| blob.decoded_blob.clone().unwrap().effective);
+    blobs.sort_by_key(|blob| blob.decoded_blob.as_ref().unwrap().effective.unwrap());
 
     // Early return if empty or only one blob
     if blobs.len() < 2 {
@@ -49,7 +49,7 @@ pub fn blobs_have_no_time_gaps(mut blobs: Vec<BlobV2>) -> Result<bool> {
     for pair in blobs.windows(2) {
         let current = &pair[0];
         let next = &pair[1];
-        if next.decoded_blob.clone().unwrap().effective.unwrap() > current.decoded_blob.clone().unwrap().expiration {
+        if next.decoded_blob.as_ref().context("Could not get Decoded Blob")?.effective.context("Could not get Effectivate date")? > current.decoded_blob.as_ref().context("Could not get Decoded Blob")?.expiration {
             return Ok(false);
         }
     }
@@ -67,7 +67,7 @@ mod tests {
     fn test_convert_to_human_time_utc() {
         let timestamp = 1609459200; // 2021-01-01 00:00:00 UTC
         let expected = "2021-01-01 00:00:00";
-        let result = convert_to_human_time(timestamp);
+        let result = convert_to_human_time(timestamp).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -75,7 +75,7 @@ mod tests {
     fn test_convert_to_human_time_negative_timestamp_utc() {
         let timestamp = -2208988800; // 1900-01-01 00:00:00 UTC
         let expected = "1900-01-01 00:00:00";
-        let result = convert_to_human_time(timestamp);
+        let result = convert_to_human_time(timestamp).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -83,7 +83,7 @@ mod tests {
     fn test_convert_to_human_time_zero_timestamp_utc() {
         let timestamp = 0; // 1970-01-01 00:00:00 UTC
         let expected = "1970-01-01 00:00:00";
-        let result = convert_to_human_time(timestamp);
+        let result = convert_to_human_time(timestamp).unwrap();
         assert_eq!(result, expected);
     }
 

@@ -57,8 +57,8 @@ pub fn sign(public_key_hex: &str, private_key_hex: &str, payload_bytes: &[u8]) -
         Ok(signing_key.sign(payload_bytes).to_string())
     } else {
         let message_hash = sha512_first_half(payload_bytes)?;
-        let msg = Message::from_digest_slice(message_hash.as_ref()).unwrap();
-        let private_key = SecretKey::from_slice(&private_key_bytes).unwrap();
+        let msg = Message::from_digest_slice(message_hash.as_ref()).context("Could not get Message Hash")?;
+        let private_key = SecretKey::from_slice(&private_key_bytes).context("Could not get Private Key Bytes")?;
         let signature = private_key.sign_ecdsa(msg).to_string().to_uppercase();
         Ok(signature)
     }
