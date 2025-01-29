@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use predicates::str::contains;
 
-const BIN_NAME: &str = "xrpl-vl-tool";
+const BIN_NAME: &str = "xrpl_vl_tool";
 
 #[test]
 fn test_cli_load_v1() {
