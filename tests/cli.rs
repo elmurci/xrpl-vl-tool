@@ -158,7 +158,7 @@ fn test_cli_sign_missing_value_args() {
         .arg("the_name");
 
     let expected = r#"error: the following required arguments were not provided:
-  --sequence <EXPIRATION_IN_DAYS>"#;
+  --expiration <EXPIRATION_IN_DAYS>"#;
 
     cmd.assert()
         .failure()

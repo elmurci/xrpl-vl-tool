@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{env, fs};
 use vaultrs::{
@@ -69,7 +69,7 @@ pub async fn get_aws_secret(id: &str) -> Result<Option<Secret>> {
         Ok(None)
     } else {
         Ok(Some(serde_json::from_str::<Secret>(
-            &resp.secret_string.unwrap(),
+            &resp.secret_string.context("Could not get Secret string")?,
         )?))
     }
 }
@@ -85,10 +85,10 @@ pub async fn get_vault_secret(mount: &str, path: &str) -> Result<Option<Secret>>
             .address(vault_endpoint)
             .token(vault_token)
             .build()
-            .unwrap(),
+            .context("Error building Vault client settings")?,
     )
-    .unwrap();
-    let keypair: Secret = kv2::read(&client, mount, path).await.unwrap();
+    .context("Could not get Vault client")?;
+    let keypair: Secret = kv2::read(&client, mount, path).await.context("Could not get the vault key")?;
     Ok(Some(keypair))
 }
 
