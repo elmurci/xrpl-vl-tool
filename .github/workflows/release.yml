@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: cargo test
-        run: cargo test --all-features
+        run: cargo test --all-features --locked
       - uses: taiki-e/create-gh-release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,6 +36,7 @@ jobs:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
           # Note that glob pattern is not supported yet.
           bin: xrpl_vl_tool
+          locked: true
           # (optional) Target triple, default is host triple.
           target: ${{ matrix.target }}
           # (required) GitHub token for uploading assets to GitHub Releases.
