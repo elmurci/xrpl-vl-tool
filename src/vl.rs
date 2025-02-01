@@ -3,6 +3,7 @@ use std::fs;
 use anyhow::{anyhow, Context, Result};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{Duration, Utc};
+use secp256k1::hashes::hex::DisplayHex;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -13,7 +14,7 @@ use crate::{
     secret::Secret,
     time::{blobs_have_no_time_gaps, convert_to_ripple_time},
     util::{
-        base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest, Version,
+        base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest, Version
     },
 };
 
@@ -288,8 +289,8 @@ pub async fn sign_vl(
     let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
     let vl_blob = BASE64_STANDARD.encode(decoded_blob_payload.clone());
     let signature = sign(
-        &secret.public_key,
-        &secret.private_key,
+        &secret.key_pair.public_key_bytes.to_upper_hex_string(),
+        &secret.key_pair.private_key_bytes.to_upper_hex_string(),
         decoded_blob_payload.clone().as_bytes(),
     )?;
 

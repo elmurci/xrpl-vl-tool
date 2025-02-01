@@ -1,15 +1,18 @@
 use anyhow::{Context, Result};
 use ed25519_dalek::{
     Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
-    VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
+    VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH, SECRET_KEY_LENGTH,
+    Signer, Verifier,
 };
-use ed25519_dalek::{Signer, Verifier};
+use secp256k1::{Keypair, Secp256k1};
 use secp256k1::{
     ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, SecretKey,
 };
+use serde::{Deserialize, Serialize};
 use std::str;
 use std::str::FromStr;
 
+use crate::secret::KeyType;
 use crate::util::get_key_bytes;
 use crate::util::sha512_first_half;
 
@@ -33,6 +36,12 @@ pub struct Ed25519Verifier<V> {
     pub verifying_key: V,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct KeyPair {
+    pub public_key_bytes: Vec<u8>, // 32 or 33 bytes
+    pub private_key_bytes: [u8; SECRET_KEY_LENGTH], // 32 bytes
+}
+
 impl<V> Ed25519Verifier<V>
 where
     V: Verifier<ed25519::Signature>,
@@ -44,6 +53,38 @@ where
     ) -> Result<(), ed25519::Error> {
         self.verifying_key.verify(payload, signature)
     }
+}
+
+pub fn get_keypair_bytes_from_private_key_hex(private_key_hex: &str, secret_type: KeyType) -> Result<KeyPair> {
+    let private_key_bytes: [u8; 32] = hex::decode(private_key_hex)
+        .context("Could not decode from hex")?
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("Private key should be 32 bytes long"))?;
+    let keypair = match secret_type {
+        KeyType::Secp256k1 => {
+            let secp = Secp256k1::new();
+            let secret_key = SecretKey::from_slice(&private_key_bytes).expect("32 bytes, within curve order");
+            let keypair = Keypair::from_secret_key(&secp, &secret_key);
+            KeyPair {
+                public_key_bytes: keypair.public_key().serialize().into(),
+                private_key_bytes: keypair.secret_bytes(),
+            }
+        }
+        KeyType::Ed25519 => {
+            let signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes);
+            let key_pair = signing_key.to_keypair_bytes();
+            let (private_key, public_key) = key_pair.split_at(32);
+            let private_key_bytes = <[u8; 32]>::try_from(private_key).unwrap();
+            let public_key_bytes = <[u8; 32]>::try_from(public_key).unwrap();
+            KeyPair {
+                public_key_bytes: public_key_bytes.into(),
+                private_key_bytes,
+            }
+
+        }
+    };
+    Ok(keypair)
+
 }
 
 pub fn sign(public_key_hex: &str, private_key_hex: &str, payload_bytes: &[u8]) -> Result<String> {
@@ -70,9 +111,8 @@ pub fn verify_signature(
     signature: &str,
 ) -> Result<bool> {
     let is_ed25519 = public_key_hex.starts_with("ED");
-    let mut public_key_bytes = get_key_bytes(public_key_hex).context("Could not get bytes")?;
+    let public_key_bytes = get_key_bytes(public_key_hex).context("Could not get bytes")?;
     if is_ed25519 {
-        public_key_bytes.remove(0);
         let public_key: [u8; PUBLIC_KEY_LENGTH] = public_key_bytes
             .try_into()
             .map_err(|_| anyhow::anyhow!("Could not parse ed25519 public key"))?;

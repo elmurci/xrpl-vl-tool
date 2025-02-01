@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
 
             let secret_provider: SecretProvider =
                 SecretProvider::from_string_slice(secret_provider)?;
-            let secret = get_secret(secret_provider, secret_name).await?;
+            let secret = get_secret(secret_provider, secret_name.clone()).await?;
             if secret.is_none() {
                 anyhow::bail!("No secret was found");
             }

@@ -1,18 +1,21 @@
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{env, fs};
+use std::env;
 use vaultrs::{
     client::{VaultClient, VaultClientSettingsBuilder},
     kv2,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+use crate::crypto::{get_keypair_bytes_from_private_key_hex, KeyPair};
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Secret {
-    pub public_key: String,
-    pub private_key: String,
+    pub key_pair: KeyPair,
+    pub key_type: KeyType,
+    pub secret_provider: SecretProvider,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum SecretProvider {
     Aws,
     Vault,
@@ -37,26 +40,39 @@ impl SecretProvider {
     }
 }
 
-#[derive(Debug)]
-pub enum SecretType {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum KeyType {
     Ed25519,
     Secp256k1,
 }
 
-pub async fn get_secret(secret_provider: SecretProvider, id: &str) -> Result<Option<Secret>> {
+// TODO: Tests
+pub fn get_secret_from_private_key(private_key_hex: &str) -> Result<Secret> {
+    let key_pair = get_keypair_bytes_from_private_key_hex(private_key_hex, KeyType::Ed25519)?;
+        Ok(
+            Secret {
+                key_pair,
+                key_type: KeyType::Ed25519,
+                secret_provider: SecretProvider::Local,
+            }
+        )
+}
+
+pub async fn get_secret(secret_provider: SecretProvider, secret_id: Option<String>) -> Result<Option<Secret>> {
     match secret_provider {
-        SecretProvider::Aws => get_aws_secret(id).await,
+        SecretProvider::Aws => get_aws_secret(&secret_id.context("Could not get secret id")?).await,
         SecretProvider::Vault => {
-            let args: Vec<String> = id.split(":").map(|s| s.to_string()).collect();
+            let args: Vec<String> = secret_id.context("Could not get secret id")?.split(":").map(|s| s.to_string()).collect();
             if args.len() != 2 {
                 anyhow::bail!("Invalid Vault secret format");
             }
             get_vault_secret(&args[0], &args[1]).await
         }
         SecretProvider::Local => {
-            let keys_content = fs::read_to_string(id);
-            let secret = serde_json::from_str::<Secret>(&keys_content?)?;
-            Ok(Some(secret))
+            let local_private_key_hex = env::var("VL_PK")?;
+            Ok(
+                Some(get_secret_from_private_key(&local_private_key_hex)?)
+            )
         }
     }
 }
@@ -68,9 +84,7 @@ pub async fn get_aws_secret(id: &str) -> Result<Option<Secret>> {
     if resp.secret_string.is_none() {
         Ok(None)
     } else {
-        Ok(Some(serde_json::from_str::<Secret>(
-            &resp.secret_string.context("Could not get Secret string")?,
-        )?))
+        Ok(Some(get_secret_from_private_key(&resp.secret_string.unwrap())?))
     }
 }
 
@@ -94,15 +108,21 @@ pub async fn get_vault_secret(mount: &str, path: &str) -> Result<Option<Secret>>
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::OsRng;
+    use secp256k1::{hashes::hex::DisplayHex, Secp256k1};
+
     use super::*;
 
     #[tokio::test]
     async fn test_get_local_secret() {
-        let local_secret = get_secret(SecretProvider::Local, "tests/data/local_keys.json")
+        let secp = Secp256k1::new();
+        let (secret_key, _public_key) = secp.generate_keypair(&mut OsRng);
+        let secret_key_hex = secret_key.secret_bytes().to_upper_hex_string();
+        env::set_var("VL_PK", secret_key_hex.clone());
+        let local_secret = get_secret(SecretProvider::Local, None)
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(&local_secret.public_key, "SOME_PUBLIC_KEY");
-        assert_eq!(&local_secret.private_key, "SOME_PRIVATE_KEY");
+        assert_eq!(local_secret.key_pair.private_key_bytes.to_upper_hex_string(), secret_key_hex);
     }
 }

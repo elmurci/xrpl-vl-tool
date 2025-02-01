@@ -11,11 +11,11 @@ mod test {
     use chrono::{NaiveDateTime, Utc};
     use ed25519_dalek::SigningKey;
     use rand::rngs::OsRng;
-    use secp256k1::Secp256k1;
+    use secp256k1::{hashes::hex::DisplayHex, Secp256k1};
     use xrpl_vl_tool::{
-        crypto::sign,
+        crypto::{sign, KeyPair},
         manifest::{encode_manifest, serialize_manifest_data, DecodedManifest},
-        secret::{Secret, SecretType},
+        secret::{KeyType, Secret, SecretProvider},
         time::convert_to_ripple_time,
         util::{base58_to_hex, hex_to_base58, Version},
         vl::{decode_vl_v1, decode_vl_v2, get_vl, load_vl, sign_vl, verify_vl, Vl},
@@ -27,11 +27,11 @@ mod test {
         sequence: u32,
         domain: Option<String>,
     ) -> String {
-        let master_public_key = hex_to_base58(&master_secret.public_key).unwrap();
-        let signing_public_key = hex_to_base58(&signing_secret.public_key).unwrap();
+        let master_public_key = hex_to_base58(&master_secret.key_pair.public_key_bytes.to_upper_hex_string()).unwrap();
+        let signing_public_key = hex_to_base58(&signing_secret.key_pair.public_key_bytes.to_upper_hex_string()).unwrap();
         let serialized_manifest = serialize_manifest_data(&DecodedManifest {
-            master_public_key: master_secret.public_key.clone(),
-            signing_public_key: signing_secret.public_key.clone(),
+            master_public_key: master_public_key.clone(),
+            signing_public_key: signing_public_key.clone(),
             sequence,
             domain: domain.clone(),
             signature: "".to_string(),
@@ -41,13 +41,13 @@ mod test {
         .unwrap();
         let master_signature = sign(
             &master_public_key,
-            &master_secret.private_key,
+            &master_secret.key_pair.private_key_bytes.to_upper_hex_string(),
             &serialized_manifest,
         )
         .unwrap();
         let signature = sign(
             &signing_public_key,
-            &signing_secret.private_key,
+            &signing_secret.key_pair.private_key_bytes.to_upper_hex_string(),
             &serialized_manifest,
         )
         .unwrap();
@@ -62,27 +62,33 @@ mod test {
         .unwrap()
     }
 
-    fn generate_secret(secret_type: &SecretType) -> Secret {
+    fn generate_secret(secret_type: &KeyType) -> Secret {
         match secret_type {
-            SecretType::Ed25519 => {
+            KeyType::Ed25519 => {
                 let mut csprng = OsRng;
                 let signing_key: SigningKey = SigningKey::generate(&mut csprng);
                 let public_key_hex =
                     format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
-                let private_key_hex = hex::encode(signing_key.to_bytes());
-
+                let signing_key_bytes = signing_key.to_bytes();
                 Secret {
-                    private_key: private_key_hex.to_uppercase(),
-                    public_key: public_key_hex.to_uppercase(),
+                    key_pair: KeyPair {
+                        public_key_bytes: public_key_hex.as_bytes().to_vec(),
+                        private_key_bytes: signing_key_bytes,
+                    },
+                    key_type: KeyType::Ed25519,
+                    secret_provider: SecretProvider::Local,
                 }
             }
-            SecretType::Secp256k1 => {
+            KeyType::Secp256k1 => {
                 let secp = Secp256k1::new();
                 let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
-                let private_key_hex = hex::encode(private_key.secret_bytes());
                 Secret {
-                    private_key: private_key_hex.to_uppercase(),
-                    public_key: public_key.to_string().to_uppercase(),
+                    key_pair: KeyPair {
+                        public_key_bytes: public_key.serialize().to_vec(),
+                        private_key_bytes: private_key.secret_bytes(),
+                    },
+                    key_type: KeyType::Ed25519,
+                    secret_provider: SecretProvider::Local,
                 }
             }
         }
@@ -112,7 +118,7 @@ mod test {
         expiration: u16,
         effective: Option<i64>,
         v2_vl: Option<Vl>,
-        secret_type: SecretType,
+        secret_type: KeyType,
         number_of_blobs: Option<u8>,
     ) -> Result<Vl> {
         let master_secret = generate_secret(&secret_type);
@@ -178,7 +184,7 @@ mod test {
             365,
             None,
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             Some(0),
         )
         .await
@@ -221,7 +227,7 @@ mod test {
             365,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await
@@ -250,7 +256,7 @@ mod test {
             1365,
             get_timestamp_from_string("2026-09-05 22:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             Some(2),
         )
         .await
@@ -280,7 +286,7 @@ mod test {
             365,
             None,
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             Some(0),
         )
         .await
@@ -307,7 +313,7 @@ mod test {
             365,
             None,
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             Some(0),
         )
         .await;
@@ -432,7 +438,7 @@ mod test {
             365,
             None,
             None,
-            SecretType::Ed25519,
+            KeyType::Ed25519,
             None,
         )
         .await
@@ -455,7 +461,7 @@ mod test {
             365,
             Some(get_valid_effective_timestamp(1000)),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await
@@ -479,7 +485,7 @@ mod test {
             365,
             Some(get_valid_effective_timestamp(2000)),
             None,
-            SecretType::Ed25519,
+            KeyType::Ed25519,
             None,
         )
         .await
@@ -505,7 +511,7 @@ mod test {
             365,
             Some(get_valid_effective_timestamp(2000)),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await
@@ -517,7 +523,7 @@ mod test {
             365,
             Some(get_valid_effective_timestamp(2000)),
             Some(signed_vl),
-            SecretType::Ed25519,
+            KeyType::Ed25519,
             None,
         )
         .await;
@@ -537,7 +543,7 @@ mod test {
             365,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await
@@ -549,7 +555,7 @@ mod test {
             1,
             get_timestamp_from_string("2024-01-05 23:56".to_owned()),
             Some(signed_vl),
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await;
@@ -567,7 +573,7 @@ mod test {
             365,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await
@@ -579,7 +585,7 @@ mod test {
             1,
             get_timestamp_from_string("2024-01-05 23:56".to_owned()),
             Some(signed_vl),
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await;
@@ -598,7 +604,7 @@ mod test {
             1,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await;
@@ -614,7 +620,7 @@ mod test {
             0,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Ed25519,
+            KeyType::Ed25519,
             None,
         )
         .await;
@@ -630,7 +636,7 @@ mod test {
             0,
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
-            SecretType::Secp256k1,
+            KeyType::Secp256k1,
             None,
         )
         .await;
