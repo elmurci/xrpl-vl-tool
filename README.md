@@ -18,11 +18,7 @@ For more information about v2, follow this [link](https://github.com/XRPLF/XRPL-
 The command allows for either a url or a file path:
 
 ```
-<<<<<<< HEAD
-Usage: xrpl-vl-tool load <URL_OR_FILE>
-=======
 Usage: xrpl_vl_tool load <URL_OR_FILE>
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 
 Arguments:
   <URL_OR_FILE>  The URL or file path of the Validation List. You can pass either
@@ -90,11 +86,7 @@ Validator: EDA54C85F91219FD259134B6B126AD64AE7204B81DD4052510657E1A5697246AD2 (n
 Signs a new (or appends to an existing VL) UNL retrieving the secret from AWS.
 
 ```
-<<<<<<< HEAD
-Usage: xrpl-vl-tool sign [OPTIONS] --vl-version <VL_VERSION> --publisher-manifest <PUBLISHER_MANIFEST> --manifests-file <MANIFESTS_FILE> --sequence <SEQUENCE> --expiration <EXPIRATION_IN_DAYS> --secret-provider <SECRET_PROVIDER> --secret-name <SECRET_NAME>
-=======
 Usage: xrpl_vl_tool sign [OPTIONS] --vl-version <VL_VERSION> --publisher-manifest <PUBLISHER_MANIFEST> --manifests-file <MANIFESTS_FILE> --sequence <SEQUENCE> --expiration <EXPIRATION_IN_DAYS> --secret-provider <SECRET_PROVIDER> --secret-name <SECRET_NAME>
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 
 Options:
   -v, --vl-version <VL_VERSION>
@@ -110,21 +102,13 @@ Options:
   -x, --secret-provider <SECRET_PROVIDER>
           The secret provider to use: aws, vault or local. For local secret, this value should be the path to the file that holds the secret
   -n, --secret-name <SECRET_NAME>
-<<<<<<< HEAD
-          The secret id to use
-=======
-          The secret id to use. For `local`, the name of the file holding the secret.
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
+          The secret id to use. Not needed for `local`.
   -d, --effective-date-day <EFFECTIVE_DATE_DAY>
           The effective day (YYYY/MM/DD) for the Validation List (only for version 2)
   -t, --effective-date-time <EFFECTIVE_DATE_TIME>
           The effective time (HH:MM) for the Validation List (only for version 2)
   -f, --v2-vl-file <V2_VL_FILE>
-<<<<<<< HEAD
-          The effective time for the Validation List (only for version 2)
-=======
           If specified, it will create a new entry in `blovs_v2` preserving the current entries. It will create a brand new file from scratch otherwise (only for version 2 - optional)
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
   -h, --help
           Print help
 ```
@@ -153,13 +137,10 @@ The format for secret name is `{mount}:{path}`.
 
 #### Local Secrets (only recommended for local testing)
 
-For local secrets, specify the path to a file containing the public and private keys, in the following format:
+For local secrets, make an environment variable with the name `VL_PK` with the private key value:
 
 ```
-{
-    "public_key": "{the public key}",
-    "private_key": "{the private key}"
-}
+export VL_PK={THE_PRIVATE_KEY}
 ```
 
 #### Example
@@ -167,11 +148,7 @@ For local secrets, specify the path to a file containing the public and private 
 *Example request:*
 
 ```
-<<<<<<< HEAD
-./xrpl-vl-tool sign \
-=======
 ./xrpl_vl_tool sign \
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 --vl-version 1 \
 --publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
 --manifests-file tests/data/manifests_list_1.txt \
@@ -182,11 +159,7 @@ For local secrets, specify the path to a file containing the public and private 
 ```
 
 ```
-<<<<<<< HEAD
-./xrpl-vl-tool sign \
-=======
 ./xrpl_vl_tool sign \
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 --vl-version 2 \
 --publisher-manifest JAAAAAFxIe0md6v/0bM6xvvDBitx8eg5fBUF4cQsZNEa0bKP9z9HNHMh7V0AnEi5D4odY9X2sx+cY8B3OHNjJvMhARRPtTHmWnAhdkDFcg53dAQS1WDMQDLIs2wwwHpScrUnjp1iZwwTXVXXsaRxLztycioto3JgImGdukXubbrjeqCNU02f7Y/+6w0BcBJA3M0EOU+39hmB8vwfgernXZIDQ1+o0dnuXjX73oDLgsacwXzLBVOdBpSAsJwYD+nW8YaSacOHEsWaPlof05EsAg== \
 --manifests-file tests/data/manifests_list_1.txt \
@@ -275,11 +248,7 @@ Options:
 Example:
 
 ```
-<<<<<<< HEAD
-./xrpl-vl-tool encode-manifest \
-=======
 ./xrpl_vl_tool encode-manifest \
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 --sequence 1 \
 --master-public-key nHBe4vqSAzjpPRLKwSFzRFtmvzXaf5wPPmuVrQCAoJoS1zskgDA4 \
 --signing-public-key nHUhPxhvYHHDsNrdnDEqJnkFHm1XcddQYH4RjLTNaVQJZSXXeNhU \
@@ -292,11 +261,7 @@ Example:
 Decodes a manifest.
 
 ```
-<<<<<<< HEAD
-Usage: xrpl-vl-tool decode-manifest <MANIFEST>
-=======
 Usage: xrpl_vl_tool decode-manifest <MANIFEST>
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 
 Arguments:
   <MANIFEST>  The manifest to decode
@@ -308,11 +273,7 @@ Options:
 Example:
 
 ```
-<<<<<<< HEAD
-./xrpl-vl-tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
-=======
 ./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
->>>>>>> e3aeed3468d645f3f101ef372041617e68a2d302
 ```
 
 ### Run locally
