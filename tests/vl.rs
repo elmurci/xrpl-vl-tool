@@ -13,22 +13,22 @@ mod test {
     use rand::rngs::OsRng;
     use secp256k1::{hashes::hex::DisplayHex, Secp256k1};
     use xrpl_vl_tool::{
-        crypto::{sign, KeyPair},
+        crypto::{sign, KeyPairBytes, KeyType},
         manifest::{encode_manifest, serialize_manifest_data, DecodedManifest},
-        secret::{KeyType, Secret, SecretProvider},
+        secret::{Secret, SecretProvider},
         time::convert_to_ripple_time,
         util::{base58_to_hex, hex_to_base58, Version},
         vl::{decode_vl_v1, decode_vl_v2, get_vl, load_vl, sign_vl, verify_vl, Vl},
     };
 
     fn generate_manifest(
-        master_secret: &Secret,
-        signing_secret: &Secret,
+        master_secret: Secret,
+        signing_secret: Secret,
         sequence: u32,
         domain: Option<String>,
     ) -> String {
-        let master_public_key = hex_to_base58(&master_secret.key_pair.public_key_bytes.to_upper_hex_string()).unwrap();
-        let signing_public_key = hex_to_base58(&signing_secret.key_pair.public_key_bytes.to_upper_hex_string()).unwrap();
+        let master_public_key = hex_to_base58(&master_secret.key_pair_bytes.public_key_bytes.to_upper_hex_string()).unwrap();
+        let signing_public_key = hex_to_base58(&signing_secret.key_pair_bytes.public_key_bytes.to_upper_hex_string()).unwrap();
         let serialized_manifest = serialize_manifest_data(&DecodedManifest {
             master_public_key: master_public_key.clone(),
             signing_public_key: signing_public_key.clone(),
@@ -40,14 +40,12 @@ mod test {
         })
         .unwrap();
         let master_signature = sign(
-            &master_public_key,
-            &master_secret.key_pair.private_key_bytes.to_upper_hex_string(),
+            master_secret,
             &serialized_manifest,
         )
         .unwrap();
         let signature = sign(
-            &signing_public_key,
-            &signing_secret.key_pair.private_key_bytes.to_upper_hex_string(),
+            signing_secret,
             &serialized_manifest,
         )
         .unwrap();
@@ -71,9 +69,9 @@ mod test {
                     format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
                 let signing_key_bytes = signing_key.to_bytes();
                 Secret {
-                    key_pair: KeyPair {
+                    key_pair_bytes: KeyPairBytes {
                         public_key_bytes: public_key_hex.as_bytes().to_vec(),
-                        private_key_bytes: signing_key_bytes,
+                        private_key_bytes: signing_key_bytes.to_vec(),
                     },
                     key_type: KeyType::Ed25519,
                     secret_provider: SecretProvider::Local,
@@ -83,11 +81,11 @@ mod test {
                 let secp = Secp256k1::new();
                 let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
                 Secret {
-                    key_pair: KeyPair {
+                    key_pair_bytes: KeyPairBytes {
                         public_key_bytes: public_key.serialize().to_vec(),
-                        private_key_bytes: private_key.secret_bytes(),
+                        private_key_bytes: private_key.secret_bytes().to_vec(),
                     },
-                    key_type: KeyType::Ed25519,
+                    key_type: KeyType::Secp256k1,
                     secret_provider: SecretProvider::Local,
                 }
             }
@@ -120,17 +118,23 @@ mod test {
         v2_vl: Option<Vl>,
         secret_type: KeyType,
         number_of_blobs: Option<u8>,
+        manifest: Option<String>,
     ) -> Result<Vl> {
         let master_secret = generate_secret(&secret_type);
         let signing_secret = generate_secret(&secret_type);
+        let publisher_manifest = if manifest.is_none() {
+            generate_manifest(master_secret.clone(), signing_secret.clone(), 1, None)
+        } else {
+            manifest.unwrap()
+        };
         if version == 2 && number_of_blobs.is_some() {
-            let sig_secret = &signing_secret.clone();
+            let sig_secret = signing_secret.clone();
             let effective_date = effective.unwrap() + 1_000_000;
             let mut vl = v2_vl.unwrap_or_default();
             for index in 0..number_of_blobs.unwrap() {
                 vl = sign_vl(
                     version,
-                    generate_manifest(&master_secret, sig_secret, (index + 1) as u32, None),
+                    publisher_manifest.clone(),
                     manifests_list.clone(),
                     sequence + (index as u32),
                     expiration,
@@ -148,7 +152,7 @@ mod test {
         } else {
             sign_vl(
                 version,
-                generate_manifest(&master_secret, &signing_secret, 1, None),
+                publisher_manifest,
                 manifests_list.clone(),
                 sequence,
                 expiration,
@@ -186,6 +190,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             Some(0),
+            None,
         )
         .await
         .unwrap();
@@ -229,6 +234,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -258,6 +264,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             Some(2),
+            None,
         )
         .await
         .unwrap();
@@ -288,6 +295,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             Some(0),
+            None,
         )
         .await
         .unwrap();
@@ -315,6 +323,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             Some(0),
+            None,
         )
         .await;
         assert!(signed_vl.is_err());
@@ -440,6 +449,7 @@ mod test {
             None,
             KeyType::Ed25519,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -462,6 +472,7 @@ mod test {
             Some(get_valid_effective_timestamp(1000)),
             None,
             KeyType::Secp256k1,
+            None,
             None,
         )
         .await
@@ -486,6 +497,7 @@ mod test {
             Some(get_valid_effective_timestamp(2000)),
             None,
             KeyType::Ed25519,
+            None,
             None,
         )
         .await
@@ -513,6 +525,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -524,6 +537,7 @@ mod test {
             Some(get_valid_effective_timestamp(2000)),
             Some(signed_vl),
             KeyType::Ed25519,
+            None,
             None,
         )
         .await;
@@ -545,6 +559,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -556,6 +571,7 @@ mod test {
             get_timestamp_from_string("2024-01-05 23:56".to_owned()),
             Some(signed_vl),
             KeyType::Secp256k1,
+            None,
             None,
         )
         .await;
@@ -575,6 +591,7 @@ mod test {
             None,
             KeyType::Secp256k1,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -587,11 +604,48 @@ mod test {
             Some(signed_vl),
             KeyType::Secp256k1,
             None,
+            None,
         )
         .await;
         assert!(
             vl.err().unwrap().to_string() == "Sequence number must be greater than the current one"
         );
+    }
+
+    #[tokio::test]
+    async fn v1_manifest_signing_key_should_equal_secret_key() {
+        let vl = test_sign_vl(
+            1,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            1,
+            get_timestamp_from_string("2025-09-05 23:56".to_owned()),
+            None,
+            KeyType::Secp256k1,
+            None,
+            Some("JAAAAApxIe3fL1Pf7Hk1j3vna8iErDEEjP9uKgDGKOrgbbd1CiR7EnMhA/ZWuPaVAZeJrY+N5ahIcs1m2GZWrBxzwLzKl3SAwUTzdkYwRAIgCHPeBlHQsT8BXeOx5oO2eU4kmYcuG/VRLe4GMcD8Y28CIBSVDXvxNb68biVHYEvj1b7fuU4MP4Kp+QK50NVO0vggcBJArtqH2rNsXmUuJd48pt+LsPZNt+KdzUaxc9r1ORxIgg9NWAu7J/F2K1B44nZC5fPhZgwhDcS3piNk2UzLiBNFDQ==".to_string())
+        )
+        .await;
+        assert!(vl.is_err());
+        assert!(vl.err().unwrap().to_string() == "Public key in the manifest does not match the public key in the secret");
+    }
+
+    #[tokio::test]
+    async fn v2_manifest_signing_key_should_equal_secret_key() {
+        let vl = test_sign_vl(
+            2,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            1,
+            get_timestamp_from_string("2025-09-05 23:56".to_owned()),
+            None,
+            KeyType::Secp256k1,
+            None,
+            Some("JAAAAApxIe3fL1Pf7Hk1j3vna8iErDEEjP9uKgDGKOrgbbd1CiR7EnMhA/ZWuPaVAZeJrY+N5ahIcs1m2GZWrBxzwLzKl3SAwUTzdkYwRAIgCHPeBlHQsT8BXeOx5oO2eU4kmYcuG/VRLe4GMcD8Y28CIBSVDXvxNb68biVHYEvj1b7fuU4MP4Kp+QK50NVO0vggcBJArtqH2rNsXmUuJd48pt+LsPZNt+KdzUaxc9r1ORxIgg9NWAu7J/F2K1B44nZC5fPhZgwhDcS3piNk2UzLiBNFDQ==".to_string())
+        )
+        .await;
+        assert!(vl.is_err());
+        assert!(vl.err().unwrap().to_string() == "Public key in the manifest does not match the public key in the secret");
     }
 
     // Expiration dates
@@ -605,6 +659,7 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             KeyType::Secp256k1,
+            None,
             None,
         )
         .await;
@@ -622,6 +677,7 @@ mod test {
             None,
             KeyType::Ed25519,
             None,
+            None,
         )
         .await;
         assert!(vl.is_err());
@@ -637,6 +693,7 @@ mod test {
             get_timestamp_from_string("2025-09-05 23:56".to_owned()),
             None,
             KeyType::Secp256k1,
+            None,
             None,
         )
         .await;
