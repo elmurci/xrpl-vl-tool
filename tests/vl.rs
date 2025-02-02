@@ -7,7 +7,7 @@ macro_rules! test_data {
 }
 
 mod test {
-    use anyhow::Result;
+    use anyhow::{Context, Result};
     use chrono::{NaiveDateTime, Utc};
     use ed25519_dalek::SigningKey;
     use rand::rngs::OsRng;
@@ -101,8 +101,9 @@ mod test {
         (Utc::now()).timestamp() + add
     }
 
-    fn get_ripple_now() -> i64 {
-        convert_to_ripple_time(Some((Utc::now()).timestamp())).unwrap()
+    fn get_ripple_now() -> Result<i64> {
+        convert_to_ripple_time(Some((Utc::now()).timestamp()))
+            .context("Could not convert to Ripple time")
     }
 
     async fn test_sign_vl(
@@ -492,7 +493,7 @@ mod test {
                 .unwrap()
                 .effective
                 .unwrap()
-                > get_ripple_now()
+                > get_ripple_now().unwrap()
         );
     }
 

@@ -21,9 +21,12 @@ async fn main() -> Result<()> {
 
             if verified_vl.version == 1 {
                 // UNL Summary
-                let decoded_blob = verified_vl.decoded_blob.clone().unwrap();
+                let decoded_blob = verified_vl
+                    .decoded_blob
+                    .clone()
+                    .context("Could not get Decoded blob")?;
                 let expiration_unix_timestamp = convert_to_unix_time(decoded_blob.expiration);
-                println!("\nThere are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Manifest Signature: {} | Expires: {} | Version: 1 \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(verified_vl.blob_verification.expect("Could not get blob verification")), get_tick_or_cross(verified_vl.manifest.verification), convert_to_human_time(expiration_unix_timestamp));
+                println!("\nThere are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Manifest Signature: {} | Expires: {} | Version: 1 \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(verified_vl.blob_verification.context("Could not get blob verification")?), get_tick_or_cross(verified_vl.manifest.verification), convert_to_human_time(expiration_unix_timestamp)?);
                 // Validators
                 let _ = print_validators_summary(decoded_blob.validators);
             } else {
@@ -45,7 +48,7 @@ async fn main() -> Result<()> {
                             .expect("Could not get effective timestamp"),
                     );
                     // Summary
-                    println!("\n{}) There are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Effective from: {} | Expires: {} \n", index+1, decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(blob_v2.blob_verification.expect("Could not get blob verification flag")), convert_to_human_time(effective_unix_timestamp), convert_to_human_time(expiration_unix_timestamp));
+                    println!("\n{}) There are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Effective from: {} | Expires: {} \n", index+1, decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(blob_v2.blob_verification.context("Could not get blob verification flag")?), convert_to_human_time(effective_unix_timestamp)?, convert_to_human_time(expiration_unix_timestamp)?);
                     // Validators
                     let _ = print_validators_summary(decoded_blob.validators);
                 }
@@ -85,7 +88,7 @@ async fn main() -> Result<()> {
                 None
             };
             let v2_vl = if v2_vl_file.is_some() {
-                Some(get_vl(&v2_vl_file.clone().unwrap()).await?)
+                Some(get_vl(&v2_vl_file.clone().context("Could not get v2 vl file")?).await?)
             } else {
                 None
             };
@@ -103,7 +106,7 @@ async fn main() -> Result<()> {
                 manifests_file.clone(),
                 *sequence,
                 *expiration_in_days,
-                secret.unwrap(),
+                secret.context("Could not get Secret")?,
                 effective,
                 v2_vl,
             )

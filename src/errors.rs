@@ -12,6 +12,8 @@ pub enum VlValidationError {
     InvalidSequence,
     #[error("Malformed validators list")]
     MalformedVl,
+    #[error("VL has gaps")]
+    HasGaps,
 }
 
 #[derive(Error, Debug)]

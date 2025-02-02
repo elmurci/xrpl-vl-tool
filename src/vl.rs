@@ -11,7 +11,7 @@ use crate::{
     errors::VlValidationError,
     manifest::{decode_manifest, DecodedManifest},
     secret::Secret,
-    time::convert_to_ripple_time,
+    time::{blobs_have_no_time_gaps, convert_to_ripple_time},
     util::{
         base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest, Version,
     },
@@ -210,7 +210,7 @@ pub async fn sign_vl(
     }
 
     if version == 2 && v2_vl.is_some() {
-        let v = v2_vl.clone().unwrap();
+        let v = v2_vl.clone().context("Could not get v2 vl")?;
         if !v
             .blobs_v2
             .clone()
@@ -223,7 +223,8 @@ pub async fn sign_vl(
                 .ok_or(anyhow!("Could not get blobs_v2"))?;
             let mut sequence_numbers: Vec<u32> = Vec::with_capacity(blobs.len());
             for blob_v2 in blobs.iter() {
-                let decoded = BASE64_STANDARD.decode(blob_v2.blob.clone().unwrap())?;
+                let decoded = BASE64_STANDARD
+                    .decode(blob_v2.blob.clone().context("Could not get v2 blob")?)?;
                 let decoded_blob: DecodedBlob = serde_json::from_str(&String::from_utf8(decoded)?)?;
                 sequence_numbers.push(decoded_blob.sequence);
             }
@@ -232,6 +233,10 @@ pub async fn sign_vl(
             }
         } else {
             anyhow::bail!(VlValidationError::MalformedVl);
+        }
+        // Make sure there is no gap when generating new UNLs
+        if !blobs_have_no_time_gaps(v.blobs_v2.context("Missing blobs_v2")?)? {
+            anyhow::bail!(VlValidationError::HasGaps);
         }
     }
 

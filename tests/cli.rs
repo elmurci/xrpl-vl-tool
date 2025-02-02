@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use predicates::str::contains;
 
-const BIN_NAME: &str = "xrpl-vl-tool";
+const BIN_NAME: &str = "xrpl_vl_tool";
 
 #[test]
 fn test_cli_load_v1() {
@@ -158,7 +158,7 @@ fn test_cli_sign_missing_value_args() {
         .arg("the_name");
 
     let expected = r#"error: the following required arguments were not provided:
-  --sequence <EXPIRATION_IN_DAYS>"#;
+  --expiration <EXPIRATION_IN_DAYS>"#;
 
     cmd.assert()
         .failure()
