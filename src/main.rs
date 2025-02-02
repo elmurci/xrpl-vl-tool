@@ -21,7 +21,10 @@ async fn main() -> Result<()> {
 
             if verified_vl.version == 1 {
                 // UNL Summary
-                let decoded_blob = verified_vl.decoded_blob.clone().context("Could not get Decoded blob")?;
+                let decoded_blob = verified_vl
+                    .decoded_blob
+                    .clone()
+                    .context("Could not get Decoded blob")?;
                 let expiration_unix_timestamp = convert_to_unix_time(decoded_blob.expiration);
                 println!("\nThere are {} validators in this VL. Sequence is: {} | Blob Signature: {} | Manifest Signature: {} | Expires: {} | Version: 1 \n", decoded_blob.validators.len().green(), decoded_blob.sequence.green(), get_tick_or_cross(verified_vl.blob_verification.context("Could not get blob verification")?), get_tick_or_cross(verified_vl.manifest.verification), convert_to_human_time(expiration_unix_timestamp)?);
                 println!("Publisher Master Public Key: {}\n", verified_vl.public_key);
