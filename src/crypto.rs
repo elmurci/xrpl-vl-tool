@@ -1,13 +1,12 @@
 use anyhow::{Context, Result};
 use ed25519_dalek::{
-    Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
+    Signature as Ed25519Signature, Signer, SigningKey as Ed25519SigningKey, Verifier,
     VerifyingKey as Ed25519VerifyingKey, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
-    Signer, Verifier,
 };
-use secp256k1::{Keypair, Secp256k1};
 use secp256k1::{
     ecdsa::Signature as Secp256k1Signature, Message, PublicKey as Secp256k1PublicKey, SecretKey,
 };
+use secp256k1::{Keypair, Secp256k1};
 use serde::{Deserialize, Serialize};
 use std::str;
 use std::str::FromStr;
@@ -66,7 +65,10 @@ where
     }
 }
 
-pub fn get_keypair_bytes_from_private_key_hex(private_key_hex: &str, secret_type: KeyType) -> Result<KeyPairBytes> {
+pub fn get_keypair_bytes_from_private_key_hex(
+    private_key_hex: &str,
+    secret_type: KeyType,
+) -> Result<KeyPairBytes> {
     let private_key_bytes: [u8; 32] = hex::decode(private_key_hex)
         .context("Could not decode from hex")?
         .try_into()
@@ -74,7 +76,8 @@ pub fn get_keypair_bytes_from_private_key_hex(private_key_hex: &str, secret_type
     let keypair = match secret_type {
         KeyType::Secp256k1 => {
             let secp = Secp256k1::new();
-            let secret_key = SecretKey::from_slice(&private_key_bytes).context("32 bytes, within curve order")?;
+            let secret_key = SecretKey::from_slice(&private_key_bytes)
+                .context("32 bytes, within curve order")?;
             let keypair = Keypair::from_secret_key(&secp, &secret_key);
             KeyPairBytes {
                 public_key_bytes: keypair.public_key().serialize().into(),
@@ -88,14 +91,12 @@ pub fn get_keypair_bytes_from_private_key_hex(private_key_hex: &str, secret_type
             let private_key_bytes = private_key.to_vec();
             let public_key_bytes = public_key.to_vec();
             KeyPairBytes {
-                public_key_bytes: public_key_bytes.into(),
+                public_key_bytes,
                 private_key_bytes,
             }
-
         }
     };
     Ok(keypair)
-
 }
 
 pub fn get_key_type(key_bytes: Vec<u8>) -> KeyType {
@@ -109,12 +110,18 @@ pub fn get_key_type(key_bytes: Vec<u8>) -> KeyType {
 pub fn sign(secret: Secret, payload_bytes: &[u8]) -> Result<String> {
     let private_key_bytes = secret.key_pair_bytes.private_key_bytes;
     if secret.key_type == KeyType::Ed25519 {
-        let signing_key = Ed25519SigningKey::from_bytes(&private_key_bytes.try_into().map_err(|_| anyhow::anyhow!("Could not convert pk to bytes"))?);
+        let signing_key = Ed25519SigningKey::from_bytes(
+            &private_key_bytes
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("Could not convert pk to bytes"))?,
+        );
         Ok(signing_key.sign(payload_bytes).to_string())
     } else {
         let message_hash = sha512_first_half(payload_bytes)?;
-        let msg = Message::from_digest_slice(message_hash.as_ref()).context("Could not get Message Hash")?;
-        let private_key = SecretKey::from_slice(&private_key_bytes).context("Could not get Private Key Bytes")?;
+        let msg = Message::from_digest_slice(message_hash.as_ref())
+            .context("Could not get Message Hash")?;
+        let private_key =
+            SecretKey::from_slice(&private_key_bytes).context("Could not get Private Key Bytes")?;
         let signature = private_key.sign_ecdsa(msg).to_string().to_uppercase();
         Ok(signature)
     }
@@ -128,7 +135,10 @@ pub fn verify_signature(
     let key_type = get_key_type(public_key_bytes.clone());
     if key_type == KeyType::Ed25519 {
         let public_key_vec = public_key_bytes.clone().split_off(1);
-        let public_key: [u8; PUBLIC_KEY_LENGTH] = public_key_vec.as_slice().try_into().map_err(|_| anyhow::anyhow!("Invalid public key length"))?;
+        let public_key: [u8; PUBLIC_KEY_LENGTH] = public_key_vec
+            .as_slice()
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid public key length"))?;
         let signature_bytes: [u8; SIGNATURE_LENGTH] = hex::decode(signature)
             .map_err(|e| anyhow::anyhow!("Could not decode signature: {}", e))?
             .try_into()
@@ -167,16 +177,17 @@ mod tests {
         public_key_bytes_with_prefix.extend_from_slice(&[237]);
         public_key_bytes_with_prefix.extend_from_slice(&public_key_bytes);
         let signed_message = sign(
-            Secret { 
+            Secret {
                 key_pair_bytes: KeyPairBytes {
                     public_key_bytes: public_key_bytes.clone(),
-                    private_key_bytes: signing_key.to_bytes().to_vec()
+                    private_key_bytes: signing_key.to_bytes().to_vec(),
                 },
                 key_type: KeyType::Ed25519,
-                secret_provider: SecretProvider::Local
+                secret_provider: SecretProvider::Local,
             },
-            message
-        ).unwrap();
+            message,
+        )
+        .unwrap();
         assert!(verify_signature(public_key_bytes_with_prefix, message, &signed_message).unwrap());
     }
 
@@ -186,16 +197,19 @@ mod tests {
         let message = "Hello, world".as_bytes();
         let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
         let signed_message = sign(
-            Secret { 
+            Secret {
                 key_pair_bytes: KeyPairBytes {
                     public_key_bytes: public_key.serialize().to_vec(),
-                    private_key_bytes: private_key.secret_bytes().to_vec()
+                    private_key_bytes: private_key.secret_bytes().to_vec(),
                 },
                 key_type: KeyType::Secp256k1,
-                secret_provider: SecretProvider::Local
+                secret_provider: SecretProvider::Local,
             },
-            message
-        ).unwrap();
-        assert!(verify_signature(public_key.serialize().to_vec(), message, &signed_message).unwrap());
+            message,
+        )
+        .unwrap();
+        assert!(
+            verify_signature(public_key.serialize().to_vec(), message, &signed_message).unwrap()
+        );
     }
 }

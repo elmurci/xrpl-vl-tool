@@ -27,8 +27,18 @@ mod test {
         sequence: u32,
         domain: Option<String>,
     ) -> String {
-        let master_public_key = hex_to_base58(&master_secret.key_pair_bytes.public_key_bytes.to_upper_hex_string()).unwrap();
-        let signing_public_key = hex_to_base58(&signing_secret.key_pair_bytes.public_key_bytes.to_upper_hex_string()).unwrap();
+        let mut master_public_key_bytes = master_secret.clone().key_pair_bytes.public_key_bytes;
+        let mut signing_public_key_bytes = signing_secret.clone().key_pair_bytes.public_key_bytes;
+        if master_secret.key_type == KeyType::Ed25519 {
+            master_public_key_bytes.insert(0, 237);
+        }
+        let master_public_key =
+            hex_to_base58(&master_public_key_bytes.to_upper_hex_string()).unwrap();
+        if signing_secret.key_type == KeyType::Ed25519 {
+            signing_public_key_bytes.insert(0, 237);
+        }
+        let signing_public_key =
+            hex_to_base58(&signing_public_key_bytes.to_upper_hex_string()).unwrap();
         let serialized_manifest = serialize_manifest_data(&DecodedManifest {
             master_public_key: master_public_key.clone(),
             signing_public_key: signing_public_key.clone(),
@@ -39,16 +49,8 @@ mod test {
             verification: false,
         })
         .unwrap();
-        let master_signature = sign(
-            master_secret,
-            &serialized_manifest,
-        )
-        .unwrap();
-        let signature = sign(
-            signing_secret,
-            &serialized_manifest,
-        )
-        .unwrap();
+        let master_signature = sign(master_secret, &serialized_manifest).unwrap();
+        let signature = sign(signing_secret, &serialized_manifest).unwrap();
         encode_manifest(
             sequence,
             master_public_key.to_owned(),
@@ -65,13 +67,10 @@ mod test {
             KeyType::Ed25519 => {
                 let mut csprng = OsRng;
                 let signing_key: SigningKey = SigningKey::generate(&mut csprng);
-                let public_key_hex =
-                    format!("ED{}", hex::encode(signing_key.verifying_key().to_bytes()));
-                let signing_key_bytes = signing_key.to_bytes();
                 Secret {
                     key_pair_bytes: KeyPairBytes {
-                        public_key_bytes: public_key_hex.as_bytes().to_vec(),
-                        private_key_bytes: signing_key_bytes.to_vec(),
+                        public_key_bytes: signing_key.verifying_key().to_bytes().to_vec(),
+                        private_key_bytes: signing_key.to_bytes().to_vec(),
                     },
                     key_type: KeyType::Ed25519,
                     secret_provider: SecretProvider::Local,
@@ -106,7 +105,8 @@ mod test {
     }
 
     fn get_ripple_now() -> Result<i64> {
-        convert_to_ripple_time(Some((Utc::now()).timestamp())).context("Could not convert to Ripple time")
+        convert_to_ripple_time(Some((Utc::now()).timestamp()))
+            .context("Could not convert to Ripple time")
     }
 
     async fn test_sign_vl(
@@ -627,7 +627,10 @@ mod test {
         )
         .await;
         assert!(vl.is_err());
-        assert!(vl.err().unwrap().to_string() == "Public key in the manifest does not match the public key in the secret");
+        assert!(
+            vl.err().unwrap().to_string()
+                == "Public key in the manifest does not match the public key in the secret"
+        );
     }
 
     #[tokio::test]
@@ -645,7 +648,10 @@ mod test {
         )
         .await;
         assert!(vl.is_err());
-        assert!(vl.err().unwrap().to_string() == "Public key in the manifest does not match the public key in the secret");
+        assert!(
+            vl.err().unwrap().to_string()
+                == "Public key in the manifest does not match the public key in the secret"
+        );
     }
 
     // Expiration dates
