@@ -44,6 +44,7 @@ And loads the given VL performing some validations.
 ```
 There are 1 UNL's in this Validators List | Version 2 | Manifest Signature: ✓
 
+Publisher Master Public Key: ED2677ABFFD1B33AC6FBC3062B71F1E8397C1505E1C42C64D11AD1B28FF73F4734
 
 There are 35 validators in this VL. Sequence is: 80 | Blob Signature: x | Manifest Signature: ✓ | Expires: 2025-10-31 00:00:00 | Version: 1 
 
