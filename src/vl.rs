@@ -7,13 +7,14 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    crypto::{sign, verify_signature},
+    crypto::{sign, verify_signature, KeyType},
     errors::VlValidationError,
     manifest::{decode_manifest, DecodedManifest},
     secret::Secret,
     time::{blobs_have_no_time_gaps, convert_to_ripple_time},
     util::{
-        base58_to_hex, get_manifests, is_effective_date_already_present, verify_manifest, Version,
+        base58_decode, base58_to_hex, get_manifests, is_effective_date_already_present,
+        verify_manifest, Version,
     },
 };
 
@@ -112,12 +113,11 @@ pub async fn load_vl(url_or_file: &str) -> Result<DecodedVl> {
 }
 
 pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
-    let public_key =
-        base58_to_hex(&vl.manifest.signing_public_key.clone(), Version::NodePublic)?.to_uppercase();
+    let public_key_bytes =
+        base58_decode(Version::NodePublic, vl.manifest.signing_public_key.clone())?;
     // Manifest Verification
     let manifest_verification = verify_manifest(vl.manifest.clone()).is_ok();
     vl.manifest.verification = manifest_verification;
-
     // With version 1 there is only one blob
     if vl.version == 1 {
         let mut decoded_blob = vl
@@ -136,7 +136,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
         }
         vl.decoded_blob = Some(decoded_blob);
         let verify_blob = verify_signature(
-            &public_key,
+            public_key_bytes,
             &BASE64_STANDARD.decode(vl.blob.clone().context("Could not get blob from v1 vl")?)?,
             &vl.signature
                 .clone()
@@ -174,7 +174,7 @@ pub fn verify_vl(mut vl: DecodedVl) -> Result<DecodedVl> {
                 .clone()
                 .context("Could not get blobs v2 from vl")?[index];
             let verify_blob = verify_signature(
-                &public_key,
+                public_key_bytes.clone(),
                 &BASE64_STANDARD.decode(
                     blobs_v2
                         .blob
@@ -204,6 +204,20 @@ pub async fn sign_vl(
     v2_vl: Option<Vl>,
 ) -> Result<Vl> {
     let decoded_publisher_manifest = decode_manifest(&manifest)?;
+    let mut signing_public_key_hex =
+        hex::encode(secret.clone().key_pair_bytes.public_key_bytes).to_uppercase();
+    let manifest_signing_public_key_hex = base58_to_hex(
+        &decoded_publisher_manifest.signing_public_key,
+        Version::NodePublic,
+    )?
+    .to_uppercase();
+
+    if secret.key_type == KeyType::Ed25519 {
+        signing_public_key_hex = format!("ED{}", signing_public_key_hex);
+    }
+    if signing_public_key_hex != manifest_signing_public_key_hex {
+        anyhow::bail!("Public key in the manifest does not match the public key in the secret")
+    }
 
     if expiration_in_days == 0 {
         anyhow::bail!("Expiration has to be greater than 0");
@@ -288,11 +302,7 @@ pub async fn sign_vl(
 
     let decoded_blob_payload = serde_json::to_string(&decoded_blob)?;
     let vl_blob = BASE64_STANDARD.encode(decoded_blob_payload.clone());
-    let signature = sign(
-        &secret.public_key,
-        &secret.private_key,
-        decoded_blob_payload.clone().as_bytes(),
-    )?;
+    let signature = sign(secret, decoded_blob_payload.clone().as_bytes())?;
 
     vl.public_key = base58_to_hex(
         &decoded_publisher_manifest.master_public_key,

@@ -18,3 +18,5 @@ generated*
 
 ### VisualStudioCode ###
 .vscode/* 
+
+settings.json

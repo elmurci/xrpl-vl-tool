@@ -117,12 +117,29 @@ pub fn is_effective_date_already_present(vl: &DecodedVl, effective_date: i64) ->
     Ok(false)
 }
 
+pub fn is_hex(s: &str) -> bool {
+    let s = s.strip_prefix("0x").unwrap_or(s);
+    hex::decode(s).is_ok()
+}
+
 pub fn get_key_bytes(key: &str) -> Result<Vec<u8>> {
+    let mut k = key.to_owned();
     if key.len() >= 64 {
-        Ok(base58_decode(
-            Version::NodePublic,
-            hex_to_base58(key).context("Could not convert hex to base58")?.as_str(),
-        )?)
+        if is_hex(&k) {
+            if key.starts_with("ED") {
+                let new_key = key.chars().skip(2).collect::<String>();
+                k = new_key;
+            }
+            Ok(base58_decode(
+                Version::NodePublic,
+                hex_to_base58(&k).context("Could not convert hex to base58")?.as_str(),
+            )?)
+        } else {
+            Ok(base58_decode(
+                Version::NodePublic,
+                k,
+            )?)
+        }        
     } else if key.len() != 33 {
         Ok(base58_decode(Version::NodePublic, key)?)
     } else {
@@ -135,21 +152,19 @@ pub fn verify_manifest(decoded_manifest: DecodedManifest) -> Result<DecodedManif
     let payload = serialize_manifest_data(&manifest)?;
 
     let manifest_master_validation = verify_signature(
-        &hex::encode(&base58_decode(
+        base58_decode(
             Version::NodePublic,
             &decoded_manifest.master_public_key,
-        )?)
-        .to_uppercase(),
+        )?,
         &payload,
         &decoded_manifest.master_signature,
     )?;
 
     let manifest_signing_validation = verify_signature(
-        &hex::encode(&base58_decode(
+        base58_decode(
             Version::NodePublic,
             &decoded_manifest.signing_public_key,
-        )?)
-        .to_uppercase(),
+        )?,
         &payload,
         &decoded_manifest.signature,
     )?;
@@ -167,7 +182,6 @@ pub fn print_validators_summary(mut validators: Vec<Validator>) -> Result<()> {
     for validator in validators.iter_mut() {
         if let Some(validator_manifest) = &validator.decoded_manifest {
             let validator_validation = verify_manifest(validator_manifest.clone())?;
-
             println!(
                 "Validator: {} ({}) | Verification: {} | {}",
                 &validator.validation_public_key,

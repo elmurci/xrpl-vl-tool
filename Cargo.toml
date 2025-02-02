@@ -14,7 +14,7 @@ path = "src/lib.rs"
 [dependencies]
 clap = { version="4.2", features=["derive"] }
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = { version = "1.0" }
+serde_json = { version = "1.0.138" }
 url = "2.5.3"
 reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1.41.1", features = ["full"] }
@@ -23,7 +23,7 @@ base64 = "0.22.1"
 sha2 = "0.10.8"
 bs58 = { version = "0.5.1", features = ["check"] }
 hex = "0.4"
-aws-sdk-secretsmanager = "1.53.0"
+aws-sdk-secretsmanager = "1.61.0"
 aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
 color-eyre = "0.6.3"
 ed25519-dalek = { version = "2.1.1" }
@@ -33,11 +33,11 @@ anstream = "0.6.18"
 openssl = { version = "0.10", features = ["vendored"] }
 chrono = "0.4.38"
 vaultrs = "0.7.1"
-thiserror = "2.0.9"
+thiserror = "2.0.11"
 
 [dev-dependencies]
 ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
 rand = "0.8.5"
 secp256k1 = { version = "0.30.0", features = ["hashes", "rand"] }
 assert_cmd = "2.0"
-predicates = "2"
+predicates = "3.1.3"

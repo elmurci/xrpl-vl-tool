@@ -113,7 +113,7 @@ fn test_cli_encode_manifest_missing_args() {
 }
 
 #[test]
-fn test_cli_encode_manifest_invalid_value_args() {
+fn test_cli_secret_not_local() {
     let mut cmd = Command::cargo_bin(BIN_NAME).unwrap();
 
     cmd.arg("encode-manifest").arg("--sequence").arg("a");
@@ -133,7 +133,6 @@ fn test_cli_sign_missing_value_args() {
   --sequence <SEQUENCE>
   --expiration <EXPIRATION_IN_DAYS>
   --secret-provider <SECRET_PROVIDER>
-  --secret-name <SECRET_NAME>
   --effective-date-day <EFFECTIVE_DATE_DAY>
   --effective-date-time <EFFECTIVE_DATE_TIME>"#;
 
