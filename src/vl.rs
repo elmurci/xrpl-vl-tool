@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    crypto::{sign, verify_signature},
+    crypto::{sign, verify_signature, KeyType},
     errors::VlValidationError,
     manifest::{decode_manifest, DecodedManifest},
     secret::Secret,
@@ -202,12 +202,16 @@ pub async fn sign_vl(
     v2_vl: Option<Vl>,
 ) -> Result<Vl> {
     let decoded_publisher_manifest = decode_manifest(&manifest)?;
-    let signing_public_key_hex = hex::encode(secret.clone().key_pair_bytes.public_key_bytes).to_uppercase();
+    let mut signing_public_key_hex = hex::encode(secret.clone().key_pair_bytes.public_key_bytes).to_uppercase();
     let manifest_signing_public_key_hex = base58_to_hex(
         &decoded_publisher_manifest.signing_public_key,
         Version::NodePublic,
     )?.to_uppercase();
     
+    if secret.key_type == KeyType::Ed25519 {
+        signing_public_key_hex = format!("ED{}", signing_public_key_hex);
+    }
+
     if signing_public_key_hex != manifest_signing_public_key_hex {
         anyhow::bail!("Public key in the manifest does not match the public key in the secret")
     }
