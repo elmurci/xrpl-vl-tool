@@ -35,9 +35,14 @@ pub enum Commands {
         /// The secret provider to use: aws, vault or local. For local secret, this value should be the path to the file that holds the secret
         #[arg(short = 'x', long = "secret-provider")]
         secret_provider: String,
-        /// The secret id to use
-        #[arg(short = 'n', long = "secret-name")]
-        secret_name: String,
+        #[arg(
+            short = 'n',
+            long = "secret-name",
+            required_if_eq_any(
+                [("secret_provider", "vault"), ("secret_provider", "aws")],
+            )
+        )]
+        secret_name: Option<String>,
         /// The effective day (YYYY/MM/DD) for the Validation List (only for version 2)
         #[arg(
             short = 'd',
