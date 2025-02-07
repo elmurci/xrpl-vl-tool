@@ -281,8 +281,6 @@ pub async fn sign_vl(
         let effective_date_time = convert_to_ripple_time(effective)?;
         if effective_date_time > expiration_ripple_timestamp {
             anyhow::bail!(VlValidationError::EffectiveDateBeforeExpiration);
-        } else if effective_date_time < now_ripple_timestamp {
-            anyhow::bail!(VlValidationError::PastEffectiveDate);
         } else if v2_vl.is_some()
             && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)?
         {
