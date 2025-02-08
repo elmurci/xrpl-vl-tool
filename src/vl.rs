@@ -198,7 +198,7 @@ pub async fn sign_vl(
     manifest: String,
     manifests_file: String,
     sequence: u32,
-    expiration_in_days: u16,
+    expiration_in_days: i16,
     secret: Secret,
     effective: Option<i64>,
     v2_vl: Option<Vl>,
@@ -256,6 +256,11 @@ pub async fn sign_vl(
 
     let mut vl = v2_vl.clone().unwrap_or_default();
     let manifests = get_manifests(&manifests_file)?;
+
+    if manifests.is_empty() {
+        anyhow::bail!("No manifests found in the file");
+    }
+    
     let mut validators: Vec<Validator> = vec![];
 
     for manifest in manifests {
@@ -272,16 +277,9 @@ pub async fn sign_vl(
         validators.push(validator);
     }
 
-    let now_ripple_timestamp = convert_to_ripple_time(Some((Utc::now()).timestamp()))?;
-    let expiration_ripple_timestamp = convert_to_ripple_time(Some(
-        (Utc::now() + Duration::days(expiration_in_days as i64)).timestamp(),
-    ))?;
-
     let effective_ripple_timestamp = if version == 2 {
         let effective_date_time = convert_to_ripple_time(effective)?;
-        if effective_date_time > expiration_ripple_timestamp {
-            anyhow::bail!(VlValidationError::EffectiveDateBeforeExpiration);
-        } else if v2_vl.is_some()
+        if v2_vl.is_some()
             && is_effective_date_already_present(&decode_vl_v2(&vl)?, effective_date_time)?
         {
             anyhow::bail!(VlValidationError::EffectiveDateAlreadyPresent);
@@ -289,6 +287,18 @@ pub async fn sign_vl(
         Some(effective_date_time)
     } else {
         None
+    };
+
+    let expiration_delta = Duration::days(expiration_in_days.into());
+
+    let expiration_ripple_timestamp = if version == 2 {
+        convert_to_ripple_time(Some(
+            effective.context("Could not get effective date")? + expiration_delta.num_seconds(),
+        ))?
+    } else {
+        convert_to_ripple_time(Some(
+            (Utc::now() + expiration_delta).timestamp(),
+        ))?
     };
 
     let decoded_blob = DecodedBlob {

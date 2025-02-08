@@ -31,7 +31,7 @@ pub enum Commands {
         sequence: u32,
         /// The expiration in days of the Validation List
         #[arg(short = 'e', long = "expiration")]
-        expiration_in_days: u16,
+        expiration_in_days: i16,
         /// The secret provider to use: aws, vault or local. For local secret, this value should be the path to the file that holds the secret
         #[arg(short = 'x', long = "secret-provider")]
         secret_provider: String,

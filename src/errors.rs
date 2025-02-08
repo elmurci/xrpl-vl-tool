@@ -4,8 +4,6 @@ use thiserror::Error;
 pub enum VlValidationError {
     #[error("Effective date must be before expiration date")]
     EffectiveDateBeforeExpiration,
-    #[error("Effective date can't be in the past")]
-    PastEffectiveDate,
     #[error("Exact same Effective date already present in the VL")]
     EffectiveDateAlreadyPresent,
     #[error("Sequence number must be greater than the current one")]
