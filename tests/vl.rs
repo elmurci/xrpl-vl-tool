@@ -16,7 +16,7 @@ mod test {
         crypto::{sign, KeyPairBytes, KeyType},
         manifest::{encode_manifest, serialize_manifest_data, DecodedManifest},
         secret::{Secret, SecretProvider},
-        time::convert_to_ripple_time,
+        time::{convert_to_human_time, convert_to_ripple_time, convert_to_unix_time},
         util::{base58_to_hex, hex_to_base58, Version},
         vl::{decode_vl_v1, decode_vl_v2, get_vl, load_vl, sign_vl, verify_vl, Vl},
     };
@@ -113,7 +113,7 @@ mod test {
         version: u8,
         manifests_list: String,
         sequence: u32,
-        expiration: u16,
+        expiration: i16,
         effective: Option<i64>,
         v2_vl: Option<Vl>,
         secret_type: KeyType,
@@ -176,6 +176,66 @@ mod test {
             assert!(validator.decoded_manifest.unwrap().verification);
         }
         assert!(verified_vl.manifest.verification);
+    }
+
+    #[tokio::test]
+    async fn v1_manifests_file_should_have_1_at_least() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            1,
+            test_data!("empty_file").to_string(),
+            91,
+            365,
+            None,
+            None,
+            KeyType::Secp256k1,
+            None,
+            None,
+        )
+        .await;
+        assert!(
+            signed_vl.err().unwrap().to_string() == "No manifests found in the file"
+        );
+    }
+
+    #[tokio::test]
+    async fn expiration_should_be_positive() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            1,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            -3,
+            None,
+            None,
+            KeyType::Secp256k1,
+            None,
+            None,
+        )
+        .await;
+        assert!(
+            signed_vl.err().unwrap().to_string() == "Expiration has to be greater than 0"
+        );
+    }
+
+    #[tokio::test]
+    async fn v2_manifests_file_should_have_1_at_least() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            2,
+            test_data!("empty_file").to_string(),
+            91,
+            1365,
+            get_timestamp_from_string("2026-09-05 22:56".to_owned()),
+            None,
+            KeyType::Secp256k1,
+            Some(2),
+            None,
+        )
+        .await;
+        assert!(
+            signed_vl.err().unwrap().to_string() == "No manifests found in the file"
+        );
     }
 
     #[tokio::test]
@@ -669,7 +729,8 @@ mod test {
             None,
         )
         .await;
-        assert!(vl.is_err());
+        let decoded_blob = decode_vl_v2(&vl.unwrap()).unwrap().decoded_blobs_v2.unwrap().get(0).unwrap().decoded_blob.clone().unwrap();
+        assert_eq!(convert_to_human_time(convert_to_unix_time(decoded_blob.expiration)).unwrap(), "2025-09-06 23:56:00");
     }
 
     #[tokio::test]
