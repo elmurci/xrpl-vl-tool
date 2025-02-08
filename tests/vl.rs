@@ -199,6 +199,26 @@ mod test {
     }
 
     #[tokio::test]
+    async fn expiration_should_be_positive() {
+        // Sign
+        let signed_vl = test_sign_vl(
+            1,
+            test_data!("manifests_list_1.txt").to_string(),
+            91,
+            -3,
+            None,
+            None,
+            KeyType::Secp256k1,
+            None,
+            None,
+        )
+        .await;
+        assert!(
+            signed_vl.err().unwrap().to_string() == "Expiration has to be greater than 0"
+        );
+    }
+
+    #[tokio::test]
     async fn v2_manifests_file_should_have_1_at_least() {
         // Sign
         let signed_vl = test_sign_vl(

@@ -219,7 +219,7 @@ pub async fn sign_vl(
         anyhow::bail!("Public key in the manifest does not match the public key in the secret")
     }
 
-    if expiration_in_days == 0 {
+    if expiration_in_days <= 0 {
         anyhow::bail!("Expiration has to be greater than 0");
     }
 
