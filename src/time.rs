@@ -37,7 +37,12 @@ pub fn get_timestamp() -> Result<u64> {
 
 pub fn blobs_have_no_time_gaps(mut blobs: Vec<BlobV2>) -> Result<bool> {
     // Sort by start date
-    blobs.sort_by_key(|blob| blob.decoded_blob.as_ref().unwrap().effective.unwrap());
+    blobs.sort_by_key(|blob| {
+        blob.decoded_blob
+            .as_ref()
+            .and_then(|decoded| decoded.effective)
+            .unwrap_or_default()
+    });
 
     // Early return if empty or only one blob
     if blobs.len() < 2 {
@@ -51,13 +56,13 @@ pub fn blobs_have_no_time_gaps(mut blobs: Vec<BlobV2>) -> Result<bool> {
         if next
             .decoded_blob
             .as_ref()
-            .context("Could not get Decoded Blob")?
+            .context("Could not get next Decoded Blob")?
             .effective
-            .context("Could not get Effectivate date")?
+            .context("Could not get next Effectivate date")?
             > current
                 .decoded_blob
                 .as_ref()
-                .context("Could not get Decoded Blob")?
+                .context("Could not get current Decoded Blob")?
                 .expiration
         {
             return Ok(false);

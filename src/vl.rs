@@ -248,10 +248,7 @@ pub async fn sign_vl(
         } else {
             anyhow::bail!(VlValidationError::MalformedVl);
         }
-        // Make sure there is no gap when generating new UNLs
-        if !blobs_have_no_time_gaps(v.blobs_v2.context("Missing blobs_v2")?)? {
-            anyhow::bail!(VlValidationError::HasGaps);
-        }
+
     }
 
     let mut vl = v2_vl.clone().unwrap_or_default();
@@ -343,6 +340,11 @@ pub async fn sign_vl(
                 blob_verification: None,
             });
         vl.version = 2;
+
+        // Make sure there is no gap when generating new UNLs
+        if !blobs_have_no_time_gaps(decode_vl_v2(&vl.clone())?.decoded_blobs_v2.context("Could not get blobs v2")?)? {
+            anyhow::bail!(VlValidationError::HasGaps);
+        }
     }
 
     Ok(vl)
