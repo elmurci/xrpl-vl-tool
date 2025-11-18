@@ -31,30 +31,30 @@ And loads the given VL performing some validations.
 
 #### Example
 
-*Example request:*
+_Example request:_
 
 `./xrpl_vl_tool load https://vl.xrplf.org` or `./xrpl_vl_tool load /dev/vl.json`
 
-*Example response:*
+_Example response:_
 
-```
+```text
 There are 1 UNL's in this Validators List | Version 2 | Manifest Signature: ✓
 
 Publisher Master Public Key: ED2677ABFFD1B33AC6FBC3062B71F1E8397C1505E1C42C64D11AD1B28FF73F4734
 
-There are 35 validators in this VL. Sequence is: 80 | Blob Signature: x | Manifest Signature: ✓ | Expires: 2025-10-31 00:00:00 | Version: 1 
+There are 35 validators in this VL. Sequence is: 80 | Blob Signature: x | Manifest Signature: ✓ | Expires: 2025-10-31 00:00:00 | Version: 1
 
 Validator: ED13AAFCB6A87BCB5D093C2EF37F04431C291126D674293305152D9776C6ABA4D6 (nHBWa56Vr7csoFcCnEPzCCKVvnDQw3L28mATgHYQMGtbEfUjuYyB) | Master: ✓, Signing: ✓ | xrp.vet
-Validator: ED4246AA3AE9D29863944800CCA91829E4447498A20CD9C3973A6B59346C75AB95 (nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec) | Master: ✓, Signing: ✓ |  
-Validator: ED5784A43AA84B5BDAFD0AFEF64ADA5583A3129182C6A7464950FD6BF2D9FAE5B0 (nHUryiyDqEtyWVtFG24AAhaYjMf9FRLietbGzviF3piJsMm9qyDR) | Master: ✓, Signing: ✓ |  
-Validator: ED583ECD06C3B7369980E65C78C440A529300F557ED81256283F7DD5AA3513A334 (nHUpJSKQTZdB1TDkbCREMuf8vEqFkk84BcvZDhsQsDufFDQVajam) | Master: ✓, Signing: ✓ |  
+Validator: ED4246AA3AE9D29863944800CCA91829E4447498A20CD9C3973A6B59346C75AB95 (nHBidG3pZK11zQD6kpNDoAhDxH6WLGui6ZxSbUx7LSqLHsgzMPec) | Master: ✓, Signing: ✓ |
+Validator: ED5784A43AA84B5BDAFD0AFEF64ADA5583A3129182C6A7464950FD6BF2D9FAE5B0 (nHUryiyDqEtyWVtFG24AAhaYjMf9FRLietbGzviF3piJsMm9qyDR) | Master: ✓, Signing: ✓ |
+Validator: ED583ECD06C3B7369980E65C78C440A529300F557ED81256283F7DD5AA3513A334 (nHUpJSKQTZdB1TDkbCREMuf8vEqFkk84BcvZDhsQsDufFDQVajam) | Master: ✓, Signing: ✓ |
 Validator: ED65142881189CA8FE8D246A8EACE7637A8CA7CE78656638C6D87FAD369F8A5C81 (nHUfxETNHsA9reyYCVYwNztEbifMg6U9YUdcgVvzMwGNpphKSSf6) | Master: ✓, Signing: ✓ | xrpkuwait.com
 Validator: ED7098772471769E82A5466329967DC8BF51C941190164E88D7CC9C393AD407C52 (nHUDpRzvY8fSRfQkmJMqjmVSaFmMEVxBNn2tNQy5VAhFJ6is6GFk) | Master: ✓, Signing: ✓ | ekiserrepe.es
-Validator: ED8252C2F91523126EEF9A21964C7E487A10D6D63D459139700DBC70D9F7BAD542 (nHULqGBkJtWeNFjhTzYeAsHA3qKKS7HoBh8CV3BAGTGMZuepEhWC) | Master: ✓, Signing: ✓ |  
-Validator: EDA4074FD039407BD2464F14C378440D5B02CA8FBA661B286D1C82A3D59E8E6EC0 (nHUbgDd63HiuP68VRWazKwZRzS61N37K3NbfQaZLhSQ24LGGmjtn) | Master: ✓, Signing: ✓ |  
-Validator: EDFE65FB385B6BB16951153D2A0F32BD6D8CC4532C87BB3E1900913A7BE34F5EF7 (nHDH7bQJpVfDhVSqdui3Z8GPvKEBQpo6AKHcnXe21zoD4nABA6xj) | Master: ✓, Signing: ✓ |  
-Validator: EDC1897CE83B6DCF58858574EC9FE027D4B1538A0F20823800A5529E121E87A93B (nHUFCyRCrUjvtZmKiLeF8ReopzKuUoKeDeXo3wEUBVSaawzcSBpW) | Master: ✓, Signing: ✓ |  
-Validator: EDC2A138B3771C208965596D4D372331C17A5476BD2CE2BC7A6D3CD273DF330D99 (nHUq9tJvSyoXQKhRytuWeydpPjvTz3M9GfUpEqfsg9xsewM7KkkK) | Master: ✓, Signing: ✓ |  
+Validator: ED8252C2F91523126EEF9A21964C7E487A10D6D63D459139700DBC70D9F7BAD542 (nHULqGBkJtWeNFjhTzYeAsHA3qKKS7HoBh8CV3BAGTGMZuepEhWC) | Master: ✓, Signing: ✓ |
+Validator: EDA4074FD039407BD2464F14C378440D5B02CA8FBA661B286D1C82A3D59E8E6EC0 (nHUbgDd63HiuP68VRWazKwZRzS61N37K3NbfQaZLhSQ24LGGmjtn) | Master: ✓, Signing: ✓ |
+Validator: EDFE65FB385B6BB16951153D2A0F32BD6D8CC4532C87BB3E1900913A7BE34F5EF7 (nHDH7bQJpVfDhVSqdui3Z8GPvKEBQpo6AKHcnXe21zoD4nABA6xj) | Master: ✓, Signing: ✓ |
+Validator: EDC1897CE83B6DCF58858574EC9FE027D4B1538A0F20823800A5529E121E87A93B (nHUFCyRCrUjvtZmKiLeF8ReopzKuUoKeDeXo3wEUBVSaawzcSBpW) | Master: ✓, Signing: ✓ |
+Validator: EDC2A138B3771C208965596D4D372331C17A5476BD2CE2BC7A6D3CD273DF330D99 (nHUq9tJvSyoXQKhRytuWeydpPjvTz3M9GfUpEqfsg9xsewM7KkkK) | Master: ✓, Signing: ✓ |
 Validator: ED38B0288EA240B4CDEC18A1A6289EB49007E4EBC0DE944803EB7EF141C5664073 (nHB8QMKGt9VB4Vg71VszjBVQnDW3v3QudM4DwFaJfy96bj4Pv9fA) | Master: ✓, Signing: ✓ | bithomp.com
 Validator: ED135050AE848C37B894EFC67BBEC54A5B4CBAA2281C9DB2D7754A3DF6195DA65E (nHBVACxZaNbUjZZkBfj7gRxF3xgG2vbcP4m48KzVwntdTogi5Tfs) | Master: ✓, Signing: ✓ | onxrp.com
 Validator: ED2C5C95F6B67357282B7F1675AFBBAACFB61DF06DEEDF986166E7ADD3D7D33462 (nHBgyVGAEhgU6GoEqoriKmkNBjzhy6WJhX9Z7cZ71yJbv28dzvVN) | Master: ✓, Signing: ✓ | v2.xrpl-commons.org
@@ -145,7 +145,7 @@ export VL_PK={THE_PRIVATE_KEY}
 
 #### Example
 
-*Example request:*
+_Example request:_
 
 ```
 ./xrpl_vl_tool sign \
@@ -171,7 +171,7 @@ export VL_PK={THE_PRIVATE_KEY}
 --effective-date-time 09:00
 ```
 
-*Example response:*
+_Example response:_
 
 `VL file generated ✓` (a timestamped json file saved to the current folder)
 
@@ -180,10 +180,10 @@ export VL_PK={THE_PRIVATE_KEY}
 ### Version 1
 
 - `blob`: Base64-encoded JSON string containing `sequence`, `validators` and `expiration` fields.
-    - `sequence`: Validator list sequence (incremental)
-    - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
-        the list expires.
-    - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
+  - `sequence`: Validator list sequence (incremental)
+  - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
+    the list expires.
+  - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
 - `manifest`: Base64-encoded serialization of a manifest containing the publisher's master and signing public keys.
 - `signature`: Hex-encoded signature of the blob using the publisher's signing key.
 - `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
@@ -192,14 +192,14 @@ export VL_PK={THE_PRIVATE_KEY}
 ### Version 2
 
 - `blobs-v2`: Base64-encoded JSON string containing `sequence`, `validators` and `expiration` fields.
-    - `manifest`: OPTIONAL string representing the base-64 or hex-encoded manifest containing the publisher's master and signing public keys.
-    - `signature`: string representing the hex-encoded signature of the blob using the publisher's signing key.
-    - `blob` string representing the base64-encoded json representation of the blob.
-      - `effective` : Unsigned integer representing the ripple time point when the list will become valid.
-      - `sequence`: Validator list sequence (incremental)
-      - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
-          the list expires.
-      - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
+  - `manifest`: OPTIONAL string representing the base-64 or hex-encoded manifest containing the publisher's master and signing public keys.
+  - `signature`: string representing the hex-encoded signature of the blob using the publisher's signing key.
+  - `blob` string representing the base64-encoded json representation of the blob.
+    - `effective` : Unsigned integer representing the ripple time point when the list will become valid.
+    - `sequence`: Validator list sequence (incremental)
+    - `expiration`: Ripple timestamp (seconds since January 1st, 2000 (00:00 UTC)) for when
+      the list expires.
+    - `validators` contains an array of objects with a hex `validation_public_key` and a base64-encoded `manifest`
 - `manifest`: Base64-encoded serialization of a manifest containing the publisher's master and signing public keys.
 - `version`: The version of the validator list protocol this object uses. The current version is 1. A higher version number indicates backwards-incompatible changes with a previous version of the validator list protocol.
 - `public_key`: The public key used to verify this validator list data, in hexadecimal. This is a 32-byte Ed25519 public key prefixed with the byte 0xED. The value is equal to the `master_public_key` in the publisher's manifest.
@@ -275,6 +275,35 @@ Example:
 ```
 ./xrpl_vl_tool decode-manifest JAAAAAFxIe1NWZrNQGcv7hqdO+VutSUy4n1LnLA2MODJJBrxrz0fcHMhAkWhek9PSMZhFik8M+Xjp78yUA4CBG588XjqEgjUGN3idkYwRAIgevLigsRwT6Gswj9gaX06eDwwS4xBfrfnftxKqutvG4oCIBQi95V6KIjKpdaXUn+SPsDpGRU2YNUQgTjqgh39qJPpcBJAr78avNH5e3BoYgFP7Xx7PqFNf/I3jFfoMMqCnKZJUyPxk4xeQkRy3el03CqUzjWzfzkxv6jxi5G/Gz7wu7RDCQ==
 ```
+
+### Diff between UNLs
+
+We can use the `xrpl_vl_tool` along with a script to diff two UNLs and see which validators were added or removed.
+
+```bash
+Usage: ./scripts/unl-diff.sh <URL1> <URL2>
+```
+
+```bash
+./scripts/unl-diff.sh https://vl.ripple.com https://unl.xrplf.org/unl/next.json
+== Summary ==
+URL1: https://vl.ripple.com
+count=35 sequence=81 expires="2026-01-17 10:09:21" version=1 master=ED2677ABFFD1B33AC6FBC3062B71F1E8397C1505E1C42C64D11AD1B28FF73F4734
+URL2: https://unl.xrplf.org/unl/next.json
+count=35 sequence=2025111163 expires="2026-03-11 15:55:38" version=1 master=ED42AEC58B701EEBB77356FFFEC26F83C1F0407263530F068C7C73D392C7E06FD1
+
+== Added (present in URL2, not in URL1) ==
+ + ED6FCBE961C9B67924155C84AE192023606385DC7BDED3ECFDB6F117FBE12EE8C3 (nHUUgpUVNxXfxkkoyh2QDjfLfHapcut8gYwKeShnJYd3SdPui19A) | peersyst.cloud
+ + EDD3DB9E85A9B26772464BE9FCE120007E504AAF7AFF4648FA24E155B35A48FE6D (nHUxjxKPeErbN7pNk9UWA5Ee7ZPMtesSeRGJtmdqkTxe94tqM2YX) | tequ.dev
+
+== Removed (present in URL1, not in URL2) ==
+ - ED580AD4FA5DA989FA999535ECC20197A5B53A1A49A971F6652ED8D5D466CA605D (nHUpDEZX5Zy9auiu4yhDmhirNu6PyB1LvzQEL9Mxmqjr818w663q) | xspectar.com
+ - EDC2A138B3771C208965596D4D372331C17A5476BD2CE2BC7A6D3CD273DF330D99 (nHUq9tJvSyoXQKhRytuWeydpPjvTz3M9GfUpEqfsg9xsewM7KkkK)
+
+== Domain changes (same key, different domain) ==
+```
+
+The above script assumes the xrpl_vl_tool binary is located in `./xrpl_vl_tool` but this can be changed by setting the `XRPL_VL_TOOL` environment variable.
 
 ### Run locally
 
